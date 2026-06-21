@@ -31,8 +31,9 @@ class CompanionAgent:
             "1. Give practical, simple advice focusing on holistic habits (nutrition, stress, cycles).\n"
             "2. Always acknowledge user concerns with empathy.\n"
             "3. If referencing food suggestions, lean towards regional ingredients (South Indian or North Indian) depending on their preferences.\n"
-            "4. Keep your responses structured and readable (use bullet points where appropriate)."
+            "4. Do NOT use markdown formatting (such as **, #, ##, or markdown tables) in your response. Instead, write in clear, plain text. For headers, use plain text on new lines. For emphasis, use emojis or simple capitalization. Use standard unicode bullet points (•) and clean double-newlines to structure your response."
         )
+
 
     async def respond(self, message: str, chat_history: list, language: str, user_profile: dict) -> str:
         # Retrieve context via RAG
@@ -52,6 +53,29 @@ class CompanionAgent:
 
         # Run model inference
         response = await ollama_service.chat(messages, system_prompt=system_prompt)
-        return response
+
+        # Programmatically sanitize raw markdown formatting symbols
+        cleaned_response = response.replace("**", "").replace("__", "")
+        lines = cleaned_response.split("\n")
+        cleaned_lines = []
+        for line in lines:
+            stripped_line = line.strip()
+            # If the line starts with header hashes, strip them
+            if stripped_line.startswith("#"):
+                cleaned_lines.append(stripped_line.lstrip("#").strip())
+            else:
+                cleaned_lines.append(line)
+        cleaned_response = "\n".join(cleaned_lines)
+
+        # Localized disclaimers (short one-liners)
+        disclaimers = {
+            "en": "\n\n*AI-generated advice; consult a doctor for medical decisions.*",
+            "hi": "\n\n*एआई-जनित सलाह; चिकित्सा निर्णयों के लिए डॉक्टर से परामर्श करें।*",
+            "te": "\n\n*AI సలహా; వైద్యపరమైన నిర్ణయాల కోసం వైద్యుడిని సంప్రదించండి.*"
+        }
+        
+        disclaimer = disclaimers.get(language, disclaimers["en"])
+        return cleaned_response + disclaimer
+
 
 companion_agent = CompanionAgent()

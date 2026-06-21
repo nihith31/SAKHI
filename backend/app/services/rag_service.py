@@ -1,5 +1,7 @@
 import json
 import os
+from sentence_transformers import SentenceTransformer
+from app.services.supabase_client import supabase_admin
 
 class RAGService:
     def __init__(self):
@@ -10,6 +12,15 @@ class RAGService:
         )
         self.data = {}
         self.load_kb()
+        # Initialize the embedding model locally
+        try:
+            print("[RAG] Loading SentenceTransformer 'all-mpnet-base-v2'...")
+            self.model = SentenceTransformer("all-mpnet-base-v2")
+            self.embeddings_ready = True
+            print("[RAG] SentenceTransformer model loaded successfully.")
+        except Exception as e:
+            print(f"[RAG] Error loading embedding model: {e}")
+            self.embeddings_ready = False
 
     def load_kb(self):
         try:
@@ -21,8 +32,30 @@ class RAGService:
 
     def retrieve_context(self, query: str) -> str:
         """
-        Scans key terms in the query and returns matching sections of the PCOS knowledge base.
+        Retrieves context using semantic similarity search from Supabase pgvector.
+        Falls back to local keyword JSON matching if no vectors exist or model failed.
         """
+        if self.embeddings_ready:
+            try:
+                # Generate embedding
+                query_vector = self.model.encode(query).tolist()
+                
+                # Query Supabase via match_documents RPC function
+                response = supabase_admin.rpc("match_documents", {
+                    "query_embedding": query_vector,
+                    "match_threshold": 0.3,
+                    "match_count": 5
+                }).execute()
+                
+                if response.data and len(response.data) > 0:
+                    context = ["Relevant context from PCOS PDFs:"]
+                    for doc in response.data:
+                        context.append(f"- [Source: {doc.get('source')}]: {doc.get('content')}")
+                    return "\n".join(context)
+            except Exception as e:
+                print(f"[RAG] Vector search failed (falling back to keyword JSON): {e}")
+
+        # Fallback to local keyword JSON matching
         query_lower = query.lower()
         context = []
 
@@ -73,10 +106,11 @@ class RAGService:
                 if k.lower() in query_lower:
                     context.append(f"- {k}: {v}")
 
-        # If nothing specific was matches, return general PCOS overview
+        # If nothing specific matches, return general PCOS overview
         if not context:
             context.append(f"General PCOS overview: {self.data.get('pcos_definition', '')}")
 
         return "\n".join(context)
 
 rag_service = RAGService()
+
