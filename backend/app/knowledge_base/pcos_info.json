@@ -1,0 +1,30 @@
+{
+  "pcos_definition": "Polycystic Ovary Syndrome (PCOS) is a hormonal disorder common among women of reproductive age. Women with PCOS may have irregular or prolonged menstrual periods or excess male hormone (androgen) levels. The ovaries may develop numerous small collections of fluid (follicles) and fail to regularly release eggs.",
+  "symptoms": {
+    "irregular_periods": "Irregular, infrequent, or prolonged menstrual cycles are the most common sign of PCOS.",
+    "excess_androgens": "Elevated levels of male hormones may result in physical signs, such as excess facial and body hair (hirsutism), severe acne, and male-pattern baldness.",
+    "polycystic_ovaries": "Ovaries might be enlarged and contain follicles that surround the eggs. As a result, the ovaries might fail to function regularly.",
+    "weight_gain": "Difficulty managing weight, weight gain, and insulin resistance are very common in PCOS. Diet and physical activity are key pillars of management."
+  },
+  "diet_nutrition": {
+    "general": "Focus on low glycemic index (GI) foods, anti-inflammatory foods (like berries, leafy greens, fatty fish), and high fiber intake to combat insulin resistance.",
+    "south_indian": {
+      "staples": ["Ragi (Finger Millet)", "Jowar (Sorghum)", "Sajja/Bajra (Pearl Millet)", "Brown Rice", "Curry leaves", "Moringa/Mulakkaya"],
+      "tips": "Incorporate Ragi Idli, Ragi Sangati, or millet dosa instead of white rice dosa. Avoid refined oils; use cold-pressed coconut or sesame oil in moderation. Use plenty of curry leaves and drumstick leaves for antioxidant and anti-inflammatory properties."
+    },
+    "north_indian": {
+      "staples": ["Jowar/Sorghum", "Bajra/Millet", "Methi (Fenugreek)", "Lauki (Bottle Gourd)", "Palak (Spinach)", "Amla (Gooseberry)"],
+      "tips": "Eat Bajra rotis instead of refined wheat maida. Drink fresh amla juice in the morning. Use Methi seeds (soaked overnight) to help lower blood glucose levels and insulin resistance."
+    }
+  },
+  "fitness_guidelines": {
+    "low_energy_days": "Focus on restorative yoga, gentle stretching, walking, or slow flow Pilates. Do not push your body too hard when fatigued.",
+    "regular_days": "Incorporate strength training (weights or bodyweight exercises) 2-3 times a week to improve muscle insulin sensitivity. Mix with low-intensity steady-state (LISS) cardio."
+  },
+  "hormone_ranges": {
+    "LH": "Luteinizing Hormone. Normal: 2-10 mIU/mL in follicular phase. In PCOS, LH is often elevated, creating an LH to FSH ratio of 2:1 or 3:1.",
+    "FSH": "Follicle Stimulating Hormone. Normal: 3-10 mIU/mL. Elevated LH relative to FSH is a signature indicator of PCOS.",
+    "AMH": "Anti-Müllerian Hormone. Normal: 1.5 - 4.0 ng/mL. Often significantly elevated (above 5 ng/mL) in women with PCOS due to high number of small follicles.",
+    "Testosterone": "Total Testosterone. Normal: 15-70 ng/dL. Elevated in PCOS (hyperandrogenism), causing acne and hair loss."
+  }
+}

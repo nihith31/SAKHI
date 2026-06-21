@@ -1,0 +1,25 @@
+# Backend-specific ignores
+# (root .gitignore also covers .env)
+
+# Python virtual environment
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Distribution / build
+dist/
+build/
+*.egg-info/
+
+# Byte-compiled files
+*.pyc
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Uploaded files (if stored locally during dev)
+uploads/
