@@ -1,0 +1,606 @@
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Pressable } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../../constants/Colors';
+import { supabase } from '../../services/supabase';
+import axios from 'axios';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+
+export default function TrackerScreen() {
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'symptoms' | 'cycle' | 'weight' | 'trends'>('symptoms');
+
+  // Symptom form state
+  const [energyLevel, setEnergyLevel] = useState<number>(3);
+  const [moodLevel, setMoodLevel] = useState<number>(3);
+  const [painLevel, setPainLevel] = useState<number>(1);
+  const [acne, setAcne] = useState<boolean>(false);
+  const [hairLoss, setHairLoss] = useState<boolean>(false);
+  const [bloating, setBloating] = useState<boolean>(false);
+  const [notes, setNotes] = useState<string>('');
+
+  // Cycle form state
+  const [periodStart, setPeriodStart] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [periodEnd, setPeriodEnd] = useState<string>('');
+  const [flowIntensity, setFlowIntensity] = useState<'light' | 'medium' | 'heavy'>('medium');
+  const [cycleNotes, setCycleNotes] = useState<string>('');
+
+  // Weight form state
+  const [weight, setWeight] = useState<string>('');
+
+  // Trends state
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [analyzing, setAnalyzing] = useState<boolean>(false);
+
+  const getHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return {
+      Authorization: `Bearer ${session?.access_token || ''}`,
+      'Content-Type': 'application/json',
+    };
+  };
+
+  const handleSaveSymptoms = async () => {
+    setLoading(true);
+    try {
+      const headers = await getHeaders();
+      const payload = {
+        date: new Date().toISOString().split('T')[0],
+        energy_level: energyLevel,
+        mood: moodLevel,
+        pain_level: painLevel,
+        acne,
+        hair_loss: hairLoss,
+        bloating,
+        notes: notes || null
+      };
+
+      await axios.post(`${API_URL}/api/tracker/symptom`, payload, { headers });
+      Alert.alert(t('Success', 'Success'), t('SymptomsLogged', 'Daily symptoms logged successfully! 🌸'));
+      // Reset physical symptoms/notes
+      setAcne(false);
+      setHairLoss(false);
+      setBloating(false);
+      setNotes('');
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save symptom log.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveCycle = async () => {
+    if (!periodStart) {
+      Alert.alert(t('Error', 'Error'), t('StartDateRequired', 'Please select a period start date.'));
+      return;
+    }
+    setLoading(true);
+    try {
+      const headers = await getHeaders();
+      const payload = {
+        period_start: periodStart,
+        period_end: periodEnd || null,
+        flow_intensity: flowIntensity,
+        notes: cycleNotes || null
+      };
+
+      await axios.post(`${API_URL}/api/tracker/cycle`, payload, { headers });
+      Alert.alert(t('Success', 'Success'), t('CycleLogged', 'Cycle entry saved successfully! 🌸'));
+      setPeriodEnd('');
+      setCycleNotes('');
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save cycle log.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveWeight = async () => {
+    const parsedWeight = parseFloat(weight);
+    if (isNaN(parsedWeight) || parsedWeight <= 0) {
+      Alert.alert(t('Error', 'Error'), t('InvalidWeight', 'Please enter a valid weight in kg.'));
+      return;
+    }
+    setLoading(true);
+    try {
+      const headers = await getHeaders();
+      const payload = {
+        date: new Date().toISOString().split('T')[0],
+        weight_kg: parsedWeight
+      };
+
+      await axios.post(`${API_URL}/api/tracker/weight`, payload, { headers });
+      Alert.alert(t('Success', 'Success'), t('WeightLogged', 'Weight entry saved successfully! 🌸'));
+      setWeight('');
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save weight log.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateAnalysis = async () => {
+    setAnalyzing(true);
+    try {
+      const headers = await getHeaders();
+      const response = await axios.get(`${API_URL}/api/tracker/analysis`, { headers });
+      setAiAnalysis(response.data.analysis);
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert(t('Error', 'Error'), t('AnalysisFailed', 'Failed to generate trend analysis.'));
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  return (
+    <LinearGradient colors={Colors.canvasGradient as any} style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t('SymptomTrackerTitle', 'Sakhi Health Tracker 🌸')}</Text>
+        <Text style={styles.subtitle}>{t('SymptomTrackerSubtitle', 'Track daily parameters and analyze trends')}</Text>
+      </View>
+
+      {/* Persistent Disclaimer Banner */}
+      <View style={styles.disclaimerBanner}>
+        <Text style={styles.disclaimerBannerText}>
+          ⚠️ {t('persistent_disclaimer_medical')}
+        </Text>
+      </View>
+
+
+      <View style={styles.tabContainer}>
+        {(['symptoms', 'cycle', 'weight', 'trends'] as const).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabButtonText, activeTab === tab && styles.activeTabButtonText]}>
+              {tab === 'symptoms' && t('Symptoms', 'Symptoms')}
+              {tab === 'cycle' && t('Cycle', 'Cycle')}
+              {tab === 'weight' && t('Weight', 'Weight')}
+              {tab === 'trends' && t('Trends', 'Trends')}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {activeTab === 'symptoms' && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('LogDailySymptoms', 'Log Daily Symptoms')}</Text>
+            
+            {/* Energy Slider */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('EnergyLevel', 'Energy Level (1-5)')}: {energyLevel}</Text>
+              <View style={styles.ratingRow}>
+                {[1, 2, 3, 4, 5].map((val) => (
+                  <TouchableOpacity
+                    key={val}
+                    style={[styles.ratingBtn, energyLevel === val && styles.ratingBtnActive]}
+                    onPress={() => setEnergyLevel(val)}
+                  >
+                    <Text style={[styles.ratingBtnText, energyLevel === val && styles.ratingBtnTextActive]}>{val}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Mood Slider */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('MoodLevel', 'Mood Level (1-5)')}: {moodLevel}</Text>
+              <View style={styles.ratingRow}>
+                {[1, 2, 3, 4, 5].map((val) => (
+                  <TouchableOpacity
+                    key={val}
+                    style={[styles.ratingBtn, moodLevel === val && styles.ratingBtnActive]}
+                    onPress={() => setMoodLevel(val)}
+                  >
+                    <Text style={[styles.ratingBtnText, moodLevel === val && styles.ratingBtnTextActive]}>{val}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Pain Slider */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('PainLevel', 'Pain Level (1-5)')}: {painLevel}</Text>
+              <View style={styles.ratingRow}>
+                {[1, 2, 3, 4, 5].map((val) => (
+                  <TouchableOpacity
+                    key={val}
+                    style={[styles.ratingBtn, painLevel === val && styles.ratingBtnActive]}
+                    onPress={() => setPainLevel(val)}
+                  >
+                    <Text style={[styles.ratingBtnText, painLevel === val && styles.ratingBtnTextActive]}>{val}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Checkboxes */}
+            <View style={styles.checkboxContainer}>
+              <Pressable style={styles.checkboxRow} onPress={() => setAcne(!acne)}>
+                <View style={[styles.checkbox, acne && styles.checkboxChecked]}>
+                  {acne && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                </View>
+                <Text style={styles.checkboxLabel}>{t('Acne', 'Acne / Breakouts')}</Text>
+              </Pressable>
+
+              <Pressable style={styles.checkboxRow} onPress={() => setHairLoss(!hairLoss)}>
+                <View style={[styles.checkbox, hairLoss && styles.checkboxChecked]}>
+                  {hairLoss && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                </View>
+                <Text style={styles.checkboxLabel}>{t('HairLoss', 'Excessive Hair Loss')}</Text>
+              </Pressable>
+
+              <Pressable style={styles.checkboxRow} onPress={() => setBloating(!bloating)}>
+                <View style={[styles.checkbox, bloating && styles.checkboxChecked]}>
+                  {bloating && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                </View>
+                <Text style={styles.checkboxLabel}>{t('Bloating', 'Bloating / Indigestion')}</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('NotesOptional', 'Additional Notes (Optional)')}</Text>
+              <TextInput
+                style={styles.textArea}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder={t('NotesPlaceholder', 'Write down details about your diet, cramps, etc.')}
+                placeholderTextColor={Colors.textLight}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.submitButton} onPress={handleSaveSymptoms} disabled={loading}>
+              {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitButtonText}>{t('SaveLog', 'Save Log')}</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeTab === 'cycle' && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('LogMenstrualCycle', 'Log Menstrual Cycle')}</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('PeriodStart', 'Period Start Date (YYYY-MM-DD)')}</Text>
+              <TextInput
+                style={styles.input}
+                value={periodStart}
+                onChangeText={setPeriodStart}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={Colors.textLight}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('PeriodEndOptional', 'Period End Date (Optional - YYYY-MM-DD)')}</Text>
+              <TextInput
+                style={styles.input}
+                value={periodEnd}
+                onChangeText={setPeriodEnd}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={Colors.textLight}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('FlowIntensity', 'Flow Intensity')}</Text>
+              <View style={styles.flowRow}>
+                {(['light', 'medium', 'heavy'] as const).map((intensity) => (
+                  <TouchableOpacity
+                    key={intensity}
+                    style={[styles.flowBtn, flowIntensity === intensity && styles.flowBtnActive]}
+                    onPress={() => setFlowIntensity(intensity)}
+                  >
+                    <Text style={[styles.flowBtnText, flowIntensity === intensity && styles.flowBtnTextActive]}>
+                      {intensity === 'light' && t('Light', 'Light')}
+                      {intensity === 'medium' && t('Medium', 'Medium')}
+                      {intensity === 'heavy' && t('Heavy', 'Heavy')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('NotesOptional', 'Additional Notes (Optional)')}</Text>
+              <TextInput
+                style={styles.textArea}
+                value={cycleNotes}
+                onChangeText={setCycleNotes}
+                placeholder={t('CycleNotesPlaceholder', 'Cramping intensity, fatigue level, etc.')}
+                placeholderTextColor={Colors.textLight}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.submitButton} onPress={handleSaveCycle} disabled={loading}>
+              {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitButtonText}>{t('LogPeriod', 'Log Period')}</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeTab === 'weight' && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('LogWeight', 'Track Your Weight')}</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('WeightInKg', 'Weight (in kg)')}</Text>
+              <TextInput
+                style={styles.input}
+                value={weight}
+                onChangeText={setWeight}
+                placeholder="00.0"
+                placeholderTextColor={Colors.textLight}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <TouchableOpacity style={styles.submitButton} onPress={handleSaveWeight} disabled={loading}>
+              {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitButtonText}>{t('SaveWeight', 'Save Weight')}</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeTab === 'trends' && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('TrendAnalysis', 'AI Trend Analysis')}</Text>
+            <Text style={styles.cardDescription}>
+              {t('TrendDescription', 'Sakhi will analyze your logged symptoms, cycles, and energy trends over the last 30 days to generate custom advice.')}
+            </Text>
+
+            {aiAnalysis ? (
+              <View style={styles.analysisContainer}>
+                <Text style={styles.analysisText}>{aiAnalysis}</Text>
+              </View>
+            ) : null}
+
+            <TouchableOpacity style={[styles.submitButton, { backgroundColor: Colors.secondary }]} onPress={handleGenerateAnalysis} disabled={analyzing}>
+              {analyzing ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitButtonText}>{t('GenerateTrends', 'Analyze My Trends 📊')}</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.textDark,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: Colors.textMedium,
+    marginTop: 4,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 15,
+    marginBottom: 10,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTabButton: {
+    borderBottomColor: Colors.primary,
+  },
+  tabButtonText: {
+    fontSize: 14,
+    color: Colors.textLight,
+    fontWeight: '600',
+  },
+  activeTabButtonText: {
+    color: Colors.primary,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.textDark,
+    marginBottom: 15,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: Colors.textMedium,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  inputGroup: {
+    marginBottom: 18,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textDark,
+    marginBottom: 8,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  ratingBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  ratingBtnActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  ratingBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textMedium,
+  },
+  ratingBtnTextActive: {
+    color: Colors.white,
+  },
+  checkboxContainer: {
+    marginBottom: 20,
+    backgroundColor: Colors.background,
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    color: Colors.textDark,
+  },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    fontSize: 15,
+    color: Colors.textDark,
+    backgroundColor: Colors.background,
+  },
+  textArea: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 15,
+    color: Colors.textDark,
+    backgroundColor: Colors.background,
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  flowRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  flowBtn: {
+    flex: 1,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    backgroundColor: Colors.background,
+  },
+  flowBtnActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  flowBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textMedium,
+  },
+  flowBtnTextActive: {
+    color: Colors.white,
+  },
+  submitButton: {
+    backgroundColor: Colors.primary,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  submitButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  analysisContainer: {
+    backgroundColor: Colors.background,
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 20,
+  },
+  analysisText: {
+    fontSize: 15,
+    color: Colors.textDark,
+    lineHeight: 22,
+  },
+  disclaimerBanner: {
+    backgroundColor: '#FFF2F2',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disclaimerBannerText: {
+    fontSize: 11,
+    color: '#422D30',
+    textAlign: 'center',
+    fontWeight: '600',
+    lineHeight: 15,
+  },
+});
+

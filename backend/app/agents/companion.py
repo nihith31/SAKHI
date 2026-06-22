@@ -36,9 +36,13 @@ class CompanionAgent:
 
 
     async def respond(self, message: str, chat_history: list, language: str, user_profile: dict) -> str:
+        # Normalize language code — strip locale suffix and default to 'en'
+        lang = (language or 'en').split('-')[0].lower()
+        if lang not in ('en', 'hi', 'te'):
+            lang = 'en'
         # Retrieve context via RAG
         context = rag_service.retrieve_context(message)
-        system_prompt = self.get_system_prompt(language, user_profile, context)
+        system_prompt = self.get_system_prompt(lang, user_profile, context)
 
         # Structure messages history
         messages = []
@@ -74,7 +78,7 @@ class CompanionAgent:
             "te": "\n\n*AI సలహా; వైద్యపరమైన నిర్ణయాల కోసం వైద్యుడిని సంప్రదించండి.*"
         }
         
-        disclaimer = disclaimers.get(language, disclaimers["en"])
+        disclaimer = disclaimers.get(lang, disclaimers["en"])
         return cleaned_response + disclaimer
 
 
