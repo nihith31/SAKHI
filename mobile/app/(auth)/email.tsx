@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
-  SafeAreaView, KeyboardAvoidingView, Platform, Alert, ScrollView,
+  SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -19,22 +19,24 @@ export default function EmailScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleAuth = async () => {
     const trimmedEmail = email.trim().toLowerCase();
+    setAuthError(null); // clear previous error on each attempt
 
     if (!emailRegex.test(trimmedEmail)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      setAuthError('Please enter a valid email address.');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+      setAuthError('Password must be at least 6 characters.');
       return;
     }
     if (mode === 'signup' && password !== confirmPassword) {
-      Alert.alert('Password Mismatch', 'Passwords do not match. Please re-enter.');
+      setAuthError('Passwords do not match. Please re-enter.');
       return;
     }
 
@@ -86,15 +88,15 @@ export default function EmailScreen() {
       }
     } catch (error: any) {
       const msg = error.message || 'Authentication failed.';
-      if (msg.includes('Invalid login credentials')) {
-        Alert.alert('Sign In Failed', 'Incorrect email or password. Please try again.');
-      } else if (msg.includes('Email not confirmed')) {
-        Alert.alert(
-          'Email Not Confirmed',
-          'Please disable "Confirm email" in your Supabase dashboard under Authentication → Email settings.'
-        );
+      if (
+        msg.includes('Invalid login credentials') ||
+        msg.includes('invalid_credentials') ||
+        msg.includes('user not found') ||
+        msg.includes('Email not confirmed')
+      ) {
+        setAuthError('The email or password you entered is incorrect. Please try again.');
       } else {
-        Alert.alert('Error', msg);
+        setAuthError(msg);
       }
     } finally {
       setLoading(false);
@@ -125,7 +127,7 @@ export default function EmailScreen() {
               <View style={styles.modeToggle}>
                 <TouchableOpacity
                   style={[styles.modeTab, mode === 'signin' && styles.modeTabActive]}
-                  onPress={() => setMode('signin')}
+                  onPress={() => { setMode('signin'); setAuthError(null); }}
                 >
                   <Text style={[styles.modeTabText, mode === 'signin' && styles.modeTabTextActive]}>
                     {t('auth.sign_in')}
@@ -133,7 +135,7 @@ export default function EmailScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modeTab, mode === 'signup' && styles.modeTabActive]}
-                  onPress={() => setMode('signup')}
+                  onPress={() => { setMode('signup'); setAuthError(null); }}
                 >
                   <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
                     {t('auth.sign_up')}
@@ -201,6 +203,13 @@ export default function EmailScreen() {
                     : mode === 'signin' ? t('auth.sign_in_btn') : t('auth.sign_up_btn')}
                 </Text>
               </TouchableOpacity>
+
+              {/* Inline error banner — shown instead of an Alert popup */}
+              {authError && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorBannerText}>⚠️ {authError}</Text>
+                </View>
+              )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -348,5 +357,21 @@ const styles = StyleSheet.create({
   switchLink: {
     color: Colors.primary,
     fontWeight: 'bold',
+  },
+  errorBanner: {
+    marginTop: 16,
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  errorBannerText: {
+    fontSize: 13,
+    color: '#B91C1C',
+    fontWeight: '600',
+    lineHeight: 18,
+    textAlign: 'center',
   },
 });
