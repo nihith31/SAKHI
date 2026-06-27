@@ -21,7 +21,7 @@ async def get_meal_plan(current_user=Depends(get_current_user)):
         response = supabase_admin.table("meal_plans")\
             .select("*")\
             .eq("user_id", current_user.id)\
-            .order("created_at", descending=True)\
+            .order("created_at", desc=True)\
             .limit(1)\
             .execute()
         

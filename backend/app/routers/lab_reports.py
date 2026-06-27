@@ -170,7 +170,7 @@ async def get_lab_reports(current_user=Depends(get_current_user)):
         response = supabase_admin.table("lab_reports")\
             .select("*")\
             .eq("user_id", current_user.id)\
-            .order("created_at", descending=True)\
+            .order("created_at", desc=True)\
             .execute()
         return {"reports": response.data}
     except Exception as e:

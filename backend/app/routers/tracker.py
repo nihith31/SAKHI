@@ -41,7 +41,7 @@ async def get_symptoms(current_user=Depends(get_current_user)):
         response = supabase_admin.table("symptom_logs")\
             .select("*")\
             .eq("user_id", current_user.id)\
-            .order("date", descending=True)\
+            .order("date", desc=True)\
             .execute()
         return response.data
     except Exception as e:
@@ -74,7 +74,7 @@ async def get_cycles(current_user=Depends(get_current_user)):
         response = supabase_admin.table("cycle_logs")\
             .select("*")\
             .eq("user_id", current_user.id)\
-            .order("period_start", descending=True)\
+            .order("period_start", desc=True)\
             .execute()
         return response.data
     except Exception as e:
@@ -104,7 +104,7 @@ async def get_weights(current_user=Depends(get_current_user)):
         response = supabase_admin.table("weight_logs")\
             .select("*")\
             .eq("user_id", current_user.id)\
-            .order("date", descending=True)\
+            .order("date", desc=True)\
             .execute()
         return response.data
     except Exception as e:
@@ -117,7 +117,7 @@ async def get_symptom_analysis(current_user=Depends(get_current_user)):
         logs_response = supabase_admin.table("symptom_logs")\
             .select("*")\
             .eq("user_id", current_user.id)\
-            .order("date", descending=True)\
+            .order("date", desc=True)\
             .limit(30)\
             .execute()
         
