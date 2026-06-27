@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Colors } from '../constants/Colors';
 import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 
 import { supabase } from '../services/supabase';
 import axios from 'axios';
@@ -32,6 +33,9 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   // Strips markdown symbols, emojis and URLs before passing text to TTS
@@ -85,7 +89,86 @@ export default function ChatScreen() {
 
   useEffect(() => {
     fetchUserProfile();
+    // Set up audio mode for recording on both platforms
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+    });
   }, []);
+
+  // Maps i18n language codes to Google Speech BCP-47 tags
+  const getSpeechLanguage = (lang: string): string => {
+    const map: Record<string, string> = {
+      en: 'en-IN',
+      hi: 'hi-IN',
+      te: 'te-IN',
+    };
+    return map[lang] || 'en-IN';
+  };
+
+  const startRecording = async () => {
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        Alert.alert('Permission Required', 'Microphone access is needed to use voice input.');
+        return;
+      }
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (err) {
+      Alert.alert('Recording Error', 'Could not start recording. Please try again.');
+    }
+  };
+
+  const stopRecordingAndTranscribe = async () => {
+    if (!recordingRef.current) return;
+    setIsRecording(false);
+    setIsTranscribing(true);
+    try {
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+
+      if (!uri) throw new Error('No recording URI');
+
+      // Upload audio file to the backend for transcription
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        name: 'recording.m4a',
+        type: 'audio/m4a',
+      } as any);
+
+      const language = getSpeechLanguage(i18n.language);
+      const response = await axios.post(
+        `${API_URL}/api/audio/transcribe?language=${language}`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      const transcription: string = response.data?.transcription || '';
+      if (transcription) {
+        setInputText(transcription);
+      } else if (response.data?.error) {
+        Alert.alert('Voice Input', response.data.error);
+      }
+    } catch (err: any) {
+      Alert.alert('Transcription Error', 'Could not transcribe audio. Please try again or type your message.');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const handleMicPress = () => {
+    if (isRecording) {
+      stopRecordingAndTranscribe();
+    } else {
+      startRecording();
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -268,6 +351,21 @@ export default function ChatScreen() {
               onChangeText={setInputText}
               multiline
             />
+            {/* Mic button: red when recording, pulsing spinner when transcribing */}
+            <TouchableOpacity
+              style={[
+                styles.micButton,
+                isRecording && styles.micButtonActive,
+              ]}
+              onPress={handleMicPress}
+              disabled={loading || isTranscribing}
+              accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
+            >
+              {isTranscribing
+                ? <ActivityIndicator size="small" color={Colors.primary} />
+                : <Text style={styles.micButtonText}>{isRecording ? '⏹' : '🎙️'}</Text>
+              }
+            </TouchableOpacity>
             <TouchableOpacity 
               style={styles.sendButton}
               onPress={() => handleSendMessage(inputText)}
@@ -463,6 +561,24 @@ const styles = StyleSheet.create({
   sendButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
+  },
+  micButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.background,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  micButtonActive: {
+    backgroundColor: '#FFE5E5',
+    borderColor: '#E53E3E',
+  },
+  micButtonText: {
+    fontSize: 18,
   },
   disclaimerBanner: {
     backgroundColor: '#FFF2F2', // Soft red tint for visibility

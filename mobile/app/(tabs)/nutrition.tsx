@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Colors } from '../../constants/Colors';
 import { supabase } from '../../services/supabase';
 import axios from 'axios';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -33,6 +35,7 @@ export default function NutritionScreen() {
   const [region, setRegion] = useState<'south_indian' | 'north_indian' | 'general'>('south_indian');
   const [mealPlan, setMealPlan] = useState<PlanData | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>('monday');
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     fetchActiveMealPlan();
@@ -89,6 +92,102 @@ export default function NutritionScreen() {
     { key: 'sunday', label: t('Sun', 'Sun') }
   ];
 
+  const exportMealPlanAsPDF = async () => {
+    if (!mealPlan) {
+      Alert.alert('No Plan', 'Please generate a meal plan first before exporting.');
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      const dayLabels: Record<string, string> = {
+        monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
+        thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday',
+      };
+
+      const dayRows = dayKeys
+        .filter(d => mealPlan[d as keyof PlanData])
+        .map(d => {
+          const day = mealPlan[d as keyof PlanData] as MealDay;
+          return `
+            <div class="day-card">
+              <h3>${dayLabels[d]}</h3>
+              <table>
+                <tr><td class="meal-label">🍳 Breakfast</td><td>${day.breakfast || '-'}</td></tr>
+                <tr><td class="meal-label">🍛 Lunch</td><td>${day.lunch || '-'}</td></tr>
+                <tr><td class="meal-label">🥜 Snack</td><td>${day.snack || '-'}</td></tr>
+                <tr><td class="meal-label">🍲 Dinner</td><td>${day.dinner || '-'}</td></tr>
+              </table>
+            </div>`;
+        }).join('');
+
+      const shoppingHtml = mealPlan.shopping_list && mealPlan.shopping_list.length > 0
+        ? `<div class="section"><h2>🛒 Grocery Shopping List</h2><ul>${mealPlan.shopping_list.map(i => `<li>${i}</li>`).join('')}</ul></div>`
+        : '';
+
+      const tipsHtml = mealPlan.wellness_tips && mealPlan.wellness_tips.length > 0
+        ? `<div class="section tips"><h2>💡 PCOS Wellness Tips</h2><ul>${mealPlan.wellness_tips.map(t => `<li>${t}</li>`).join('')}</ul></div>`
+        : '';
+
+      const regionLabel = region === 'south_indian' ? 'South Indian' : region === 'north_indian' ? 'North Indian' : 'General PCOS';
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Sakhi PCOS Meal Plan</title>
+          <style>
+            body { font-family: 'Georgia', serif; color: #2D2D2D; padding: 32px; }
+            h1 { color: #8B5CF6; font-size: 26px; margin-bottom: 4px; }
+            .subtitle { color: #6B7280; font-size: 14px; margin-bottom: 28px; }
+            .day-card { background: #FAF5FF; border-radius: 12px; padding: 16px; margin-bottom: 18px; border-left: 4px solid #8B5CF6; }
+            .day-card h3 { color: #7C3AED; margin: 0 0 10px; font-size: 16px; }
+            table { width: 100%; border-collapse: collapse; }
+            td { padding: 6px 8px; font-size: 13px; vertical-align: top; border-bottom: 1px solid #EDE9F6; }
+            .meal-label { font-weight: bold; color: #8B5CF6; width: 110px; white-space: nowrap; }
+            .section { margin-top: 24px; }
+            .section h2 { color: #7C3AED; font-size: 18px; border-bottom: 2px solid #DDD6FE; padding-bottom: 6px; }
+            ul { margin: 10px 0; padding-left: 20px; }
+            li { margin-bottom: 6px; font-size: 14px; }
+            .tips { background: #F0FDF4; border-radius: 12px; padding: 16px; }
+            .tips h2 { color: #15803D; }
+            .tips li { color: #166534; }
+            .footer { margin-top: 36px; font-size: 11px; color: #9CA3AF; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <h1>🌸 Sakhi PCOS Meal Plan</h1>
+          <p class="subtitle">Diet Style: ${regionLabel} &nbsp;|&nbsp; Generated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <div class="section">
+            <h2>📅 Weekly Menu</h2>
+            ${dayRows}
+          </div>
+          ${shoppingHtml}
+          ${tipsHtml}
+          <p class="footer">⚠️ This plan is for educational purposes only. Always consult your healthcare provider before making dietary changes.</p>
+        </body>
+        </html>`;
+
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Save or Share Your Meal Plan',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('Exported!', `PDF saved to: ${uri}`);
+      }
+    } catch (err: any) {
+      Alert.alert('Export Failed', 'Could not export meal plan. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <LinearGradient colors={Colors.canvasGradient} style={styles.container}>
       <View style={styles.header}>
@@ -131,6 +230,20 @@ export default function NutritionScreen() {
           <TouchableOpacity style={styles.generateButton} onPress={handleGeneratePlan} disabled={loading}>
             {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.generateButtonText}>{t('GenerateMealPlan', 'Generate Weekly Plan ✨')}</Text>}
           </TouchableOpacity>
+
+          {/* Export to PDF button — only shown when a plan exists */}
+          {mealPlan && (
+            <TouchableOpacity
+              style={styles.exportButton}
+              onPress={exportMealPlanAsPDF}
+              disabled={isExporting}
+            >
+              {isExporting
+                ? <ActivityIndicator color={Colors.white} />
+                : <Text style={styles.exportButtonText}>📄 {t('ExportPDF', 'Export Meal Plan as PDF')}</Text>
+              }
+            </TouchableOpacity>
+          )}
         </View>
 
         {mealPlan ? (
@@ -301,11 +414,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 12,
   },
   generateButtonText: {
     color: Colors.white,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  exportButton: {
+    backgroundColor: '#059669',
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exportButtonText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '700',
   },
   daysContainer: {
     marginBottom: 15,
