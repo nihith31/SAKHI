@@ -273,13 +273,6 @@ export default function ChatScreen() {
           </Text>
           {!isUser && (
             <View style={styles.bubbleFooter}>
-              {item.agent_used && (
-                <View style={styles.agentTag}>
-                  <Text style={styles.agentTagText}>
-                    {t('chat.agent_routed', { agent: item.agent_used.toUpperCase() })}
-                  </Text>
-                </View>
-              )}
               <TouchableOpacity
                 style={[styles.speakButton, isSpeaking && styles.speakButtonActive]}
                 onPress={() => speakMessage(item.id, item.content)}
