@@ -71,15 +71,31 @@ export default function NutritionScreen() {
       const headers = await getHeaders();
       const response = await axios.post(`${API_URL}/api/nutrition/meal-plan/generate`, { region }, { headers });
       if (response.data && response.data.plan) {
-        setMealPlan(response.data.plan.plan_data);
-        const isFallback = response.data.plan.plan_data?._source === 'fallback';
+        const planData = response.data.plan.plan_data;
+        setMealPlan(planData);
+        setRegion(response.data.plan.region);
+        
+        const isFallback = planData?._source === 'fallback';
         if (isFallback) {
           Alert.alert(
             '📋 Curated Plan Loaded',
             'The AI model is currently offline. A curated PCOS-friendly meal plan has been loaded instead. It will be replaced with a personalised AI plan when the AI is back online.'
           );
         } else {
-          Alert.alert(t('Success', 'Success'), t('MealPlanGenerated', 'AI Meal Plan generated successfully! 🌸'));
+          Alert.alert(
+            t('Success', 'Success'),
+            t('MealPlanGeneratedPrompt', 'AI Meal Plan generated successfully! 🌸\n\nWould you like to download it as a PDF now?'),
+            [
+              {
+                text: t('No', 'No'),
+                style: 'cancel'
+              },
+              {
+                text: t('Yes', 'Yes'),
+                onPress: () => exportMealPlanAsPDF(planData)
+              }
+            ]
+          );
         }
       }
     } catch (error: any) {
@@ -107,8 +123,9 @@ export default function NutritionScreen() {
     { key: 'sunday', label: t('Sun', 'Sun') }
   ];
 
-  const exportMealPlanAsPDF = async () => {
-    if (!mealPlan) {
+  const exportMealPlanAsPDF = async (customPlan?: PlanData) => {
+    const planToExport = customPlan || mealPlan;
+    if (!planToExport) {
       Alert.alert('No Plan', 'Please generate a meal plan first before exporting.');
       return;
     }
@@ -121,9 +138,9 @@ export default function NutritionScreen() {
       };
 
       const dayRows = dayKeys
-        .filter(d => mealPlan[d as keyof PlanData])
+        .filter(d => planToExport[d as keyof PlanData])
         .map(d => {
-          const day = mealPlan[d as keyof PlanData] as MealDay;
+          const day = planToExport[d as keyof PlanData] as MealDay;
           return `
             <div class="day-card">
               <h3>${dayLabels[d]}</h3>
@@ -136,12 +153,12 @@ export default function NutritionScreen() {
             </div>`;
         }).join('');
 
-      const shoppingHtml = mealPlan.shopping_list && mealPlan.shopping_list.length > 0
-        ? `<div class="section"><h2>🛒 Grocery Shopping List</h2><ul>${mealPlan.shopping_list.map(i => `<li>${i}</li>`).join('')}</ul></div>`
+      const shoppingHtml = planToExport.shopping_list && planToExport.shopping_list.length > 0
+        ? `<div class="section"><h2>🛒 Grocery Shopping List</h2><ul>${planToExport.shopping_list.map(i => `<li>${i}</li>`).join('')}</ul></div>`
         : '';
 
-      const tipsHtml = mealPlan.wellness_tips && mealPlan.wellness_tips.length > 0
-        ? `<div class="section tips"><h2>💡 PCOS Wellness Tips</h2><ul>${mealPlan.wellness_tips.map(t => `<li>${t}</li>`).join('')}</ul></div>`
+      const tipsHtml = planToExport.wellness_tips && planToExport.wellness_tips.length > 0
+        ? `<div class="section tips"><h2>💡 PCOS Wellness Tips</h2><ul>${planToExport.wellness_tips.map(t => `<li>${t}</li>`).join('')}</ul></div>`
         : '';
 
       const regionLabel = region === 'south_indian' ? 'South Indian' : region === 'north_indian' ? 'North Indian' : 'General PCOS';
