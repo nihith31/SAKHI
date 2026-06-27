@@ -14,6 +14,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
+
+
 # Set up CORS to allow connections from local development mobile setups (Expo)
 app.add_middleware(
     CORSMiddleware,
