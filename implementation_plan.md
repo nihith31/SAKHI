@@ -7,7 +7,7 @@
 
 | Requirement | Decision |
 |---|---|
-| **AI Model** | BioMistral-7B via Ollama (local, free, private) |
+| **AI Model** | Llama-3.1-8B-Instruct via NVIDIA API Catalog (Cloud) |
 | **Database** | Supabase (PostgreSQL) |
 | **Auth** | Supabase Auth — Mobile Number + OTP |
 | **Storage** | Supabase Storage (lab reports, profile pics) |
@@ -26,7 +26,6 @@
 | 2 | **📋 Symptom Tracker** | Daily logging of symptoms, cycle, mood, weight, energy |
 | 3 | **🍛 Personalized Meal Planning** | PCOS-friendly plans using regionally available ingredients (South Indian / North Indian) |
 | 4 | **🧪 Lab Report Analysis** | Upload blood reports → AI explains hormone levels in plain language |
-| 5 | **👯 Safe Peer Community** | Anonymous, moderated community forum in native languages |
 
 ---
 
@@ -34,15 +33,15 @@
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Mobile** | React Native + Expo (SDK 51) | Cross-platform, APK export via EAS Build |
+| **Mobile** | React Native + Expo (SDK 54) | Cross-platform, APK export via EAS Build |
 | **Navigation** | Expo Router v3 | File-based routing |
 | **State** | Zustand + React Query | Global state + server state caching |
 | **UI** | Custom components + React Native Reanimated | Premium animations |
 | **i18n** | react-i18next | English / Hindi / Telugu translations |
 | **Backend** | FastAPI (Python 3.11) | AI agent orchestration, API |
-| **AI Model** | BioMistral-7B (Ollama) | Medical LLM for all agents |
-| **RAG** | LangChain + ChromaDB | PCOS knowledge base retrieval |
-| **Embeddings** | nomic-embed-text (Ollama) | Local embeddings, no API cost |
+| **AI Model** | Llama-3.1-8B-Instruct (NVIDIA API Catalog) | Medical LLM for all agents |
+| **RAG** | LangChain + pgvector (Supabase) | PCOS knowledge base retrieval |
+| **Embeddings** | all-mpnet-base-v2 (local) | Local embeddings, no API cost |
 | **OCR (Lab Reports)** | Tesseract / Surya OCR | Extract text from uploaded PDF/images |
 | **Database** | Supabase (PostgreSQL) | All user & health data |
 | **Auth** | Supabase Auth (Phone OTP) | SMS OTP via Supabase/Twilio |
@@ -69,7 +68,6 @@ Demo project/
 │   │   │   ├── home.tsx               ← Dashboard
 │   │   │   ├── tracker.tsx            ← Symptom + cycle tracker
 │   │   │   ├── nutrition.tsx          ← Meal plan hub
-│   │   │   ├── community.tsx          ← Peer community feed
 │   │   │   └── profile.tsx            ← Profile + settings
 │   │   ├── chat.tsx                   ← Sakhi AI Chat
 │   │   ├── lab-report.tsx             ← Upload + analyze lab report
@@ -78,13 +76,11 @@ Demo project/
 │   │   ├── ui/                        ← Buttons, Cards, Inputs, Badges
 │   │   ├── tracker/                   ← Symptom cards, cycle calendar
 │   │   ├── nutrition/                 ← Meal cards, ingredient chips
-│   │   ├── community/                 ← Post cards, comment threads
 │   │   └── chat/                      ← Message bubbles, typing indicator
 │   ├── hooks/
 │   │   ├── useAuth.ts
 │   │   ├── useTracker.ts
 │   │   ├── useMealPlan.ts
-│   │   └── useCommunity.ts
 │   ├── services/
 │   │   ├── api.ts                     ← FastAPI client (axios)
 │   │   ├── supabase.ts                ← Supabase client
@@ -110,17 +106,15 @@ Demo project/
 │   │   │   ├── symptom_analyst.py     ← Symptom pattern analysis
 │   │   │   ├── meal_planner.py        ← Regional meal plan generator
 │   │   │   ├── lab_analyzer.py        ← Lab report interpreter
-│   │   │   └── community_mod.py       ← AI content moderation
 │   │   ├── routers/
 │   │   │   ├── chat.py                ← POST /chat
 │   │   │   ├── tracker.py             ← CRUD /symptoms, /cycles
 │   │   │   ├── nutrition.py           ← GET/POST /meal-plan
 │   │   │   ├── lab_reports.py         ← POST /lab-report/analyze
-│   │   │   ├── community.py           ← CRUD /posts, /comments
 │   │   │   └── notifications.py       ← POST /notify
 │   │   ├── services/
 │   │   │   ├── ollama_client.py       ← BioMistral via Ollama
-│   │   │   ├── rag_service.py         ← ChromaDB RAG retrieval
+│   │   │   ├── rag_service.py         ← pgvector (Supabase) RAG retrieval
 │   │   │   ├── ocr_service.py         ← Lab report OCR
 │   │   │   ├── translation.py         ← Hindi/Telugu prompt adapters
 │   │   │   └── supabase_client.py     ← Supabase Python client
@@ -197,27 +191,6 @@ lab_reports
   language
   created_at
 
--- Community
-community_posts
-  id, user_id
-  title, content
-  language (en | hi | te)
-  category (general | diet | fitness | mental | cycles)
-  is_anonymous (bool)
-  likes_count, comments_count
-  is_moderated (bool)
-  created_at
-
-community_comments
-  id, post_id, user_id
-  content, language
-  is_anonymous
-  is_moderated
-  created_at
-
-community_likes
-  id, post_id, user_id
-
 -- Chat History
 chat_messages
   id, user_id
@@ -271,12 +244,6 @@ notification_logs
 - Contextualizes within PCOS (e.g., elevated LH:FSH ratio meaning)
 - All in user's language
 
-### 🛡️ Agent 6: Community Moderator
-- Auto-moderates new posts/comments before publishing
-- Detects harmful content, medical misinformation, spam
-- Flags crisis content and surfaces mental health resources
-- Language-aware (English, Hindi, Telugu moderation)
-
 ---
 
 ## Multilingual Architecture
@@ -311,22 +278,8 @@ All 5 feature screens fully translated:
 | **Period Reminder** | Predicted based on last 3 cycles | 2 days before predicted start |
 | **Symptom Log Reminder** | If no log for the day | 8:00 PM daily |
 | **Weekly Health Summary** | Every Sunday | 10:00 AM |
-| **Community Reply** | Someone replies to your post | Real-time |
 | **Meal Plan Ready** | New weekly plan generated | Monday 7:00 AM |
 | **Lab Report Done** | AI analysis complete | On completion |
-
----
-
-## Peer Community Design
-
-```
-Categories: General | Diet & Nutrition | Fitness | Cycle | Mental Health
-Languages: Posts tagged by language, filterable
-Anonymous: Users can post/comment anonymously
-Reactions: ❤️ 🤗 💪 (no dislike/downvote — safe space)
-Moderation: AI pre-screens + user report button
-Pinned Posts: Expert/verified PCOS tips pinned at top
-```
 
 ---
 
@@ -346,34 +299,31 @@ Pinned Posts: Expert/verified PCOS tips pinned at top
 ## Build Phases
 
 ### ✅ Phase 1 — Foundation & Auth (Start Now)
-- [ ] Supabase project setup (DB tables, Storage buckets, Auth config)
-- [ ] FastAPI project scaffold + Supabase integration
-- [ ] Ollama + BioMistral setup script
-- [ ] React Native + Expo scaffold
-- [ ] Auth screens: Welcome → Language Select → Phone → OTP → Onboarding
-- [ ] Landing website (APK download page)
+- [x] Supabase project setup (DB tables, Storage buckets, Auth config)
+- [x] FastAPI project scaffold + Supabase integration
+- [x] Ollama + BioMistral setup script
+- [x] React Native + Expo scaffold
+- [x] Auth screens: Welcome → Language Select → Phone → OTP → Onboarding
+- [x] Landing website (APK download page)
 
 ### ✅ Phase 2 — Sakhi Chatbot
-- [ ] Ollama client service in FastAPI
-- [ ] ChromaDB RAG with PCOS knowledge base
-- [ ] Companion agent + Orchestrator
-- [ ] Multilingual prompt system
-- [ ] Chat screen in mobile app (real-time streaming responses)
+- [x] Ollama client service in FastAPI (using NVIDIA OpenAI-compatible client)
+- [ ] pgvector (Supabase) RAG with PCOS knowledge base
+- [x] Companion agent + Orchestrator
+- [x] Multilingual prompt system
+- [x] Chat screen in mobile app (real-time streaming responses)
 
 ### ✅ Phase 3 — Symptom Tracker + Meal Planner
-- [ ] Supabase tables: symptom_logs, cycle_logs, weight_logs
-- [ ] Symptom Tracker screen (daily log form + calendar view)
-- [ ] Symptom Analyst agent + weekly summary
-- [ ] Regional meal planner agent
-- [ ] Nutrition screen with weekly meal plan + grocery list
+- [x] Supabase tables: symptom_logs, cycle_logs, weight_logs
+- [x] Symptom Tracker screen (daily log form + calendar view)
+- [x] Symptom Analyst agent + weekly summary
+- [x] Regional meal planner agent (using fast 8B model)
+- [x] Nutrition screen with weekly meal plan + grocery list (includes PDF download)
 
-### ✅ Phase 4 — Lab Reports + Community
-- [ ] Supabase Storage: lab-reports bucket
-- [ ] OCR service (Tesseract) + Lab Analyzer agent
-- [ ] Lab report upload + analysis screen
-- [ ] Community tables: posts, comments, likes
-- [ ] Supabase Realtime for live community feed
-- [ ] Community screen + moderation agent
+### ✅ Phase 4 — Lab Reports
+- [x] Supabase Storage: lab-reports bucket (public config verified)
+- [x] OCR service (Tesseract) + Lab Analyzer agent
+- [x] Lab report upload + analysis screen (uses native fetch API)
 
 ### ✅ Phase 5 — Notifications + Polish + APK
 - [ ] Expo push token registration
@@ -397,10 +347,9 @@ npx jest mobile/
 ```
 
 ### Manual Testing Checklist
-- [ ] OTP login works on real Android device
-- [ ] Chat responds in Telugu/Hindi correctly
-- [ ] Meal plan uses South Indian ingredients for Telugu user
-- [ ] Lab report PDF uploads and analyzes correctly
-- [ ] Community post goes through AI moderation before appearing
+- [x] OTP login works on real Android device
+- [x] Chat responds in Telugu/Hindi correctly
+- [x] Meal plan uses South Indian ingredients for Telugu user
+- [x] Lab report PDF uploads and analyzes correctly
 - [ ] Push notification received on device
 - [ ] APK installs and runs from website download link
