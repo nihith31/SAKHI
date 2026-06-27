@@ -143,19 +143,31 @@ export default function ChatScreen() {
       } as any);
 
       const language = getSpeechLanguage(i18n.language);
-      const response = await axios.post(
+      const response = await fetch(
         `${API_URL}/api/audio/transcribe?language=${language}`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json',
+          },
+        }
       );
 
-      const transcription: string = response.data?.transcription || '';
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server returned status ${response.status}: ${errorText}`);
+      }
+
+      const resData = await response.json();
+      const transcription: string = resData?.transcription || '';
       if (transcription) {
         setInputText(transcription);
-      } else if (response.data?.error) {
-        Alert.alert('Voice Input', response.data.error);
+      } else if (resData?.error) {
+        Alert.alert('Voice Input', resData.error);
       }
     } catch (err: any) {
+      console.error('Transcription error details:', err?.response?.data || err?.message || err);
       Alert.alert('Transcription Error', 'Could not transcribe audio. Please try again or type your message.');
     } finally {
       setIsTranscribing(false);

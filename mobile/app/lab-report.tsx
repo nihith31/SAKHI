@@ -76,12 +76,19 @@ export default function LabReportScreen() {
       } as any);
 
       const { data: { session } } = await supabase.auth.getSession();
-      const headers = {
-        Authorization: `Bearer ${session?.access_token || ''}`,
-        'Content-Type': 'multipart/form-data',
-      };
+      const response = await fetch(`${API_URL}/api/lab-reports/upload`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+          'Accept': 'application/json',
+        },
+      });
 
-      const res = await axios.post(`${API_URL}/api/lab-reports/upload`, formData, { headers });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server returned status ${response.status}: ${errorText}`);
+      }
 
       Alert.alert(
         t('LabUploadSuccess', 'Uploaded! 🧪'),

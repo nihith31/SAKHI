@@ -82,7 +82,10 @@ def convert_to_wav_bytes(audio_bytes: bytes, filename: str) -> bytes:
 
     except Exception as e:
         # Gracefully fall back to raw bytes; SpeechRecognition will try its best
-        print(f"[audio] PyAV conversion failed ({e}), falling back to raw bytes.")
+        error_msg = f"[audio] PyAV conversion failed ({e}), falling back to raw bytes."
+        print(error_msg)
+        with open("transcribe_debug.log", "a", encoding="utf-8") as f:
+            f.write(error_msg + "\n")
         return audio_bytes
     finally:
         for path in [tmp_in_path, tmp_out_path]:
@@ -112,6 +115,7 @@ async def transcribe_audio(file: UploadFile = File(...), language: str = "en-IN"
     try:
         audio_bytes = await file.read()
         filename = file.filename or "recording.audio"
+        print(f"\n[Audio API] Received file: {filename}, size: {len(audio_bytes)} bytes, content_type: {file.content_type}")
 
         wav_bytes = convert_to_wav_bytes(audio_bytes, filename)
 
@@ -124,15 +128,23 @@ async def transcribe_audio(file: UploadFile = File(...), language: str = "en-IN"
         text = recognizer.recognize_google(audio_data, language=language)
         return JSONResponse(content={"transcription": text, "language": language})
 
-    except sr.UnknownValueError:
+    except sr.UnknownValueError as e:
+        with open("transcribe_debug.log", "a", encoding="utf-8") as f:
+            f.write(f"UnknownValueError: {str(e)}\n")
         return JSONResponse(
             status_code=200,
             content={"transcription": "", "error": "Could not understand audio. Please speak clearly."}
         )
     except sr.RequestError as e:
+        with open("transcribe_debug.log", "a", encoding="utf-8") as f:
+            f.write(f"RequestError: {str(e)}\n")
         raise HTTPException(
             status_code=503,
             detail=f"Google Speech Recognition API error: {e}"
         )
     except Exception as e:
+        import traceback
+        error_msg = f"Exception in transcribe_audio: {str(e)}\n{traceback.format_exc()}"
+        with open("transcribe_debug.log", "a", encoding="utf-8") as f:
+            f.write(error_msg + "\n" + "="*50 + "\n")
         raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
