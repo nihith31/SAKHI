@@ -31,13 +31,16 @@ export default function EmailScreen() {
       setAuthError('Please enter a valid email address.');
       return;
     }
-    if (password.length < 6) {
-      setAuthError('Password must be at least 6 characters.');
-      return;
-    }
-    if (mode === 'signup' && password !== confirmPassword) {
-      setAuthError('Passwords do not match. Please re-enter.');
-      return;
+    if (mode === 'signup') {
+      // Enforce minimum password length only during sign-up
+      if (password.length < 6) {
+        setAuthError('Password must be at least 6 characters.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setAuthError('Passwords do not match. Please re-enter.');
+        return;
+      }
     }
 
     try {
@@ -169,7 +172,7 @@ export default function EmailScreen() {
               <Text style={styles.fieldLabel}>{t('auth.password_label')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder={t('auth.password_placeholder')}
+                placeholder="Password"
                 placeholderTextColor={Colors.textLight}
                 secureTextEntry
                 value={password}
