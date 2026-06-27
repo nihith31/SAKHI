@@ -2,7 +2,7 @@ from openai import AsyncOpenAI
 from app.config import settings
 
 
-class OllamaService:
+class AIService:
     """
     Service wrapper that handles connection to the NVIDIA API Catalog
     using the OpenAI-compatible endpoint format.
@@ -68,6 +68,6 @@ class OllamaService:
 
 
 # Keep the instance name same to prevent breaking imports in agent files
-ollama_service = OllamaService()
+ai_service = AIService()
 
 

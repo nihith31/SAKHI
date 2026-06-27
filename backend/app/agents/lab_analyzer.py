@@ -1,5 +1,5 @@
 import json
-from app.services.ollama_client import ollama_service
+from app.services.ai_client import ai_service
 from app.config import settings
 
 # PCOS-relevant hormone reference ranges
@@ -68,7 +68,7 @@ class LabAnalyzerAgent:
         )
 
         messages = [{"role": "user", "content": prompt}]
-        raw_response = await ollama_service.chat(messages, system_prompt=system_prompt, model=settings.NVIDIA_MODEL_PLANNER)
+        raw_response = await ai_service.chat(messages, system_prompt=system_prompt, model=settings.NVIDIA_MODEL_PLANNER)
 
         # Clean any markdown formatting
         cleaned = raw_response.strip()

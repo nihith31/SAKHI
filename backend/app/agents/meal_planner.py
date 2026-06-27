@@ -1,4 +1,4 @@
-from app.services.ollama_client import ollama_service
+from app.services.ai_client import ai_service
 from app.config import settings
 import json
 
@@ -59,7 +59,7 @@ class MealPlannerAgent:
         messages = [{"role": "user", "content": prompt}]
 
         try:
-            raw_response = await ollama_service.chat(messages, system_prompt=system_prompt, model=settings.NVIDIA_MODEL_PLANNER)
+            raw_response = await ai_service.chat(messages, system_prompt=system_prompt, model=settings.NVIDIA_MODEL_PLANNER)
         except Exception as connection_error:
             # AI model is offline or unreachable — return the curated fallback plan
             print(f"[meal_planner] AI unavailable ({connection_error}), returning fallback plan.")

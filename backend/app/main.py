@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.services.ollama_client import ollama_service
+from app.services.ai_client import ai_service
 from app.routers.chat import router as chat_router
 from app.routers.tracker import router as tracker_router
 from app.routers.nutrition import router as nutrition_router
@@ -36,7 +36,7 @@ def read_root():
 
 @app.get("/health")
 async def health_check():
-    ai_ready = await ollama_service.is_ready()
+    ai_ready = await ai_service.is_ready()
     return {
         "status": "healthy",
         "database": "Supabase configured",
