@@ -38,6 +38,66 @@ export default function DashboardScreen() {
     return t('GoodEvening', 'Good Evening 🌙');
   };
 
+  // ─── Daily Rotating Tips ────────────────────────────────────────────────
+  // Tip changes every calendar day, chosen deterministically from the pool
+  // so the same tip shows all day and a fresh one appears every morning.
+
+  const PCOS_TIPS = [
+    'High-fiber foods like Ragi, Bajra, and oats help lower insulin resistance — a key PCOS driver. Try swapping white rice for a millet-based dish today.',
+    'Spearmint tea has shown promising results in reducing androgen levels in PCOS. Try one cup after your largest meal.',
+    'Short walks after meals (10–15 min) significantly improve post-meal glucose response, which is especially important with PCOS-related insulin issues.',
+    'Omega-3 rich foods like flaxseeds, walnuts, and fatty fish help reduce inflammation and improve hormonal balance in PCOS.',
+    'Chronic stress raises cortisol, which in turn spikes insulin and worsens PCOS symptoms. Even 5 minutes of deep breathing makes a measurable difference.',
+    'Vitamin D deficiency is extremely common in PCOS and worsens insulin resistance. A simple blood test can confirm your levels.',
+    'Strength training 2–3 times a week helps build muscle, which improves insulin sensitivity better than cardio alone for PCOS.',
+    'Eating a protein-rich breakfast (eggs, paneer, Greek yoghurt) helps reduce androgen levels and morning cortisol spikes.',
+    'The LH:FSH ratio is a key marker in PCOS diagnosis. An elevated ratio (above 2:1) is a common finding — ask your doctor about it.',
+    'Inositol (specifically Myo-Inositol) has strong clinical evidence for improving insulin sensitivity and egg quality in PCOS. Consult your doctor before supplementing.',
+    'Sleep deprivation of even one night increases cortisol and disrupts insulin. Prioritise 7–9 hours of quality sleep for better hormone balance.',
+    'Anti-inflammatory foods — turmeric, ginger, berries, green leafy vegetables — directly help reduce the chronic low-grade inflammation underlying PCOS.',
+    'Tracking your menstrual cycle with an app helps you and your doctor spot patterns that are invisible to memory alone.',
+    'Magnesium deficiency is linked to insulin resistance. Magnesium-rich foods include spinach, pumpkin seeds, almonds, and dark chocolate.',
+    'Avoiding ultra-processed foods and sugary beverages for just 2 weeks can measurably improve your fasting insulin levels.',
+    'Yoga poses like Supta Baddha Konasana (reclining bound angle) and Viparita Karani (legs up the wall) are specifically studied for PCOS symptom relief.',
+    'Low-GI eating doesn’t mean eating less — it means eating smarter. Pair every carbohydrate with protein or fat to blunt the glucose spike.',
+    'PCOS increases risk of anxiety and depression. Prioritising mental health is not optional — it is as important as diet and exercise.',
+    'Cinnamon (1–2 g/day) has been shown in small trials to improve menstrual regularity and insulin sensitivity in women with PCOS.',
+    'Intermittent fasting can worsen hormonal disruption in some women with PCOS. Focus on consistent meal timing rather than prolonged fasting windows.',
+  ];
+
+  const GENERAL_TIPS = [
+    'Tracking your symptoms daily — energy, mood, sleep, cycle — helps the AI detect patterns that take months to surface in a doctor’s visit.',
+    'Drinking water first thing in the morning kick-starts metabolism and flushes overnight waste products before you eat anything.',
+    'A 10-minute morning sunlight exposure within the first hour of waking regulates your circadian rhythm and improves daytime energy.',
+    'Eating slowly and chewing well improves nutrient absorption and gives your satiety hormones time to signal fullness before overeating.',
+    'Regular movement doesn’t require a gym — 7,000–8,000 steps a day reduces cardiovascular risk as effectively as structured exercise.',
+    'Zinc supports immune function and hormone production. Rich sources include chickpeas, lentils, pumpkin seeds, and cashews.',
+    'Journalling for 5 minutes before bed — things you’re grateful for — measurably reduces cortisol and improves sleep quality.',
+    'The gut microbiome directly influences oestrogen metabolism. Eating diverse fibre sources (30+ plant foods a week) supports hormonal health.',
+    'Iron deficiency is the most common nutritional deficiency in women. Pair iron-rich foods with vitamin C to significantly improve absorption.',
+    'Social connection is a genuine health intervention. Loneliness raises inflammatory markers as much as smoking 15 cigarettes a day.',
+    'Screen blue light suppresses melatonin production. Dimming screens or using night mode 1 hour before bed improves sleep onset.',
+    'Frozen vegetables retain nearly the same nutrients as fresh — they are just as valuable and often more convenient.',
+    'A consistent bedtime — even on weekends — is one of the highest-impact habits for hormonal balance, mood, and metabolism.',
+    'Cold water on your face or wrists for 30 seconds activates the dive reflex, rapidly reducing anxiety and heart rate.',
+    'Legumes (dal, rajma, chana) are one of the most nutrient-dense foods for women — rich in protein, fibre, iron, and folate.',
+    'Research shows that sitting for more than 8 hours daily is harmful even if you exercise. Set a timer to stand and move every 45 minutes.',
+    'Chronic dehydration mimics hunger. Drinking a glass of water before eating often reduces unnecessary snacking.',
+    'Probiotic-rich foods like curd, buttermilk, and kanji support gut health, which is closely tied to mood and immune function.',
+    'Regular health check-ups — even when you feel fine — are the most evidence-based form of preventive care available.',
+    'Self-compassion has measurable health benefits. Treating yourself with the same kindness you’d offer a friend reduces chronic stress hormones.',
+  ];
+
+  const getDailyTip = (): string => {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor(
+      (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const pool = userProfile?.pcos_diagnosed ? PCOS_TIPS : GENERAL_TIPS;
+    return pool[dayOfYear % pool.length];
+  };
+
   return (
     <LinearGradient colors={Colors.canvasGradient} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -102,11 +162,7 @@ export default function DashboardScreen() {
         {/* Wellness Tip of the Day */}
         <View style={styles.tipCard}>
           <Text style={styles.tipTitle}>💡 {t('DailyInsight', 'Daily Insight')}</Text>
-          <Text style={styles.tipText}>
-            {userProfile?.pcos_diagnosed
-              ? t('PCOSTip', 'Managing PCOS fatigue is easier with high-fiber foods. Try substituting morning breakfast with Ragi porridge or Bajra rotis.')
-              : t('GeneralTip', 'Tracking your symptoms daily helps the AI predict cycle changes and identify unique wellness patterns. Keep logging!')}
-          </Text>
+          <Text style={styles.tipText}>{getDailyTip()}</Text>
         </View>
       </ScrollView>
     </LinearGradient>
