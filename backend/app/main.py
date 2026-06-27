@@ -40,7 +40,7 @@ async def health_check():
     return {
         "status": "healthy",
         "database": "Supabase configured",
-        "ai_agent_engine": f"Ollama/{settings.AI_MODEL}",
+        "ai_agent_engine": f"NVIDIA (Chat: {settings.NVIDIA_MODEL_CHAT} | Planner: {settings.NVIDIA_MODEL_PLANNER})",
         "ai_ready": ai_ready
     }
 

@@ -1,26 +1,27 @@
-import ollama
-import httpx
+from openai import AsyncOpenAI
 from app.config import settings
 
 
 class OllamaService:
+    """
+    Service wrapper that handles connection to the NVIDIA API Catalog
+    using the OpenAI-compatible endpoint format.
+    """
     def __init__(self):
-        # Build headers — add Authorization if API key is set (Ollama Cloud)
-        headers = {}
-        if settings.OLLAMA_API_KEY:
-            headers["Authorization"] = f"Bearer {settings.OLLAMA_API_KEY}"
-
-        self.client = ollama.Client(
-            host=settings.OLLAMA_HOST,
-            headers=headers if headers else None
+        # We use standard AsyncOpenAI client pointing to NVIDIA endpoints
+        self.client = AsyncOpenAI(
+            base_url="https://integrate.api.nvidia.com/v1",
+            api_key=settings.NVIDIA_API_KEY
         )
-        self.model = settings.AI_MODEL
+        # Default fallback model
+        self.default_model = settings.NVIDIA_MODEL_CHAT
 
-    async def chat(self, messages: list, system_prompt: str = None) -> str:
+    async def chat(self, messages: list, system_prompt: str = None, model: str = None) -> str:
         """
-        Sends a conversation history to the configured Ollama model
-        (local or Ollama Cloud, depending on OLLAMA_HOST and OLLAMA_API_KEY).
+        Sends a conversation history to the NVIDIA API Catalog.
+        Supports model parameter routing (e.g. 8B for chat, 70B for planner).
         """
+        selected_model = model or self.default_model
         formatted_messages = []
 
         if system_prompt:
@@ -32,29 +33,41 @@ class OllamaService:
         formatted_messages.extend(messages)
 
         try:
-            response = self.client.chat(
-                model=self.model,
-                messages=formatted_messages
+            # NVIDIA API Catalog endpoints use OpenAI format
+            completion = await self.client.chat.completions.create(
+                model=selected_model,
+                messages=formatted_messages,
+                temperature=0.2,
+                top_p=0.7,
+                max_tokens=1024
             )
-            return response['message']['content']
+            content = completion.choices[0].message.content
+            return content if content else ""
         except Exception as e:
-            host_type = "Ollama Cloud" if settings.OLLAMA_API_KEY else "local Ollama"
             return (
-                f"Error communicating with {host_type} ({settings.OLLAMA_HOST}): {str(e)}. "
-                f"Please check your OLLAMA_HOST, OLLAMA_API_KEY, and AI_MODEL settings."
+                f"Error communicating with NVIDIA API Catalog ({selected_model}): {str(e)}. "
+                f"Please check your NVIDIA_API_KEY and model settings."
             )
 
     async def is_ready(self) -> bool:
         """
-        Validates connection to Ollama (local or cloud) and checks model availability.
+        Validates connection to NVIDIA API Catalog by sending a lightweight ping request.
         """
+        # If key is empty or still has placeholder prefix, client is not ready
+        if not settings.NVIDIA_API_KEY or "YOUR_NVIDIA_API_KEY" in settings.NVIDIA_API_KEY:
+            return False
         try:
-            models = self.client.list()
-            available_models = [m['name'] for m in models.get('models', [])]
-            return self.model in available_models or any(self.model in name for name in available_models)
+            await self.client.chat.completions.create(
+                model=self.default_model,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1
+            )
+            return True
         except Exception:
             return False
 
 
+# Keep the instance name same to prevent breaking imports in agent files
 ollama_service = OllamaService()
+
 

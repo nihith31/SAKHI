@@ -1,5 +1,6 @@
 from app.services.ollama_client import ollama_service
 from app.services.rag_service import rag_service
+from app.config import settings
 
 class CompanionAgent:
     def __init__(self):
@@ -56,7 +57,7 @@ class CompanionAgent:
         messages.append({"role": "user", "content": message})
 
         # Run model inference
-        response = await ollama_service.chat(messages, system_prompt=system_prompt)
+        response = await ollama_service.chat(messages, system_prompt=system_prompt, model=settings.NVIDIA_MODEL_CHAT)
 
         # Programmatically sanitize raw markdown formatting symbols
         cleaned_response = response.replace("**", "").replace("__", "")

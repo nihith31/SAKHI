@@ -1,4 +1,5 @@
 from app.services.ollama_client import ollama_service
+from app.config import settings
 
 class Orchestrator:
     def __init__(self):
@@ -18,7 +19,7 @@ class Orchestrator:
         messages = [
             {"role": "user", "content": f"Classify this message: '{message}'"}
         ]
-        decision = await ollama_service.chat(messages, system_prompt=self.system_prompt)
+        decision = await ollama_service.chat(messages, system_prompt=self.system_prompt, model=settings.NVIDIA_MODEL_CHAT)
         decision = decision.strip().lower()
         
         # Guard sanitization to guarantee valid routing

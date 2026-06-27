@@ -1,4 +1,5 @@
 from app.services.ollama_client import ollama_service
+from app.config import settings
 import json
 
 class SymptomAnalyst:
@@ -66,7 +67,7 @@ class SymptomAnalyst:
         )
 
         messages = [{"role": "user", "content": prompt}]
-        response = await ollama_service.chat(messages, system_prompt=system_prompt)
+        response = await ollama_service.chat(messages, system_prompt=system_prompt, model=settings.NVIDIA_MODEL_CHAT)
         return response
 
 symptom_analyst = SymptomAnalyst()
