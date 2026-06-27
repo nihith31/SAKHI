@@ -35,19 +35,18 @@
 |---|---|---|
 | **Mobile** | React Native + Expo (SDK 54) | Cross-platform, APK export via EAS Build |
 | **Navigation** | Expo Router v3 | File-based routing |
-| **State** | Zustand + React Query | Global state + server state caching |
+| **State** | React Local State / Context | Screen-level and global state management |
 | **UI** | Custom components + React Native Reanimated | Premium animations |
 | **i18n** | react-i18next | English / Hindi / Telugu translations |
 | **Backend** | FastAPI (Python 3.11) | AI agent orchestration, API |
 | **AI Model** | Llama-3.1-8B-Instruct (NVIDIA API Catalog) | Medical LLM for all agents |
-| **RAG** | LangChain + pgvector (Supabase) | PCOS knowledge base retrieval |
+| **RAG** | pgvector (Supabase RPC) + SentenceTransformers | Semantic knowledge base retrieval |
 | **Embeddings** | all-mpnet-base-v2 (local) | Local embeddings, no API cost |
-| **OCR (Lab Reports)** | Tesseract / Surya OCR | Extract text from uploaded PDF/images |
+| **OCR (Lab Reports)** | Tesseract / pypdf | Extract text from uploaded PDF/images |
 | **Database** | Supabase (PostgreSQL) | All user & health data |
 | **Auth** | Supabase Auth (Phone OTP) | SMS OTP via Supabase/Twilio |
 | **Storage** | Supabase Storage | Lab report uploads, profile photos |
-| **Push Notifications** | Expo Push Notifications + Supabase Edge Functions | Reminders, community alerts |
-| **Realtime** | Supabase Realtime | Live peer community feed |
+| **Push Notifications** | Expo Push Notifications + Supabase Edge Functions | Reminders, alerts |
 | **Landing Website** | HTML + Vanilla CSS + JS | APK download page |
 
 ---
