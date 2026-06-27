@@ -56,7 +56,15 @@ class MealPlannerAgent:
         )
 
         messages = [{"role": "user", "content": prompt}]
-        raw_response = await ollama_service.chat(messages, system_prompt=system_prompt)
+
+        try:
+            raw_response = await ollama_service.chat(messages, system_prompt=system_prompt)
+        except Exception as connection_error:
+            # AI model is offline or unreachable — return the curated fallback plan
+            print(f"[meal_planner] AI unavailable ({connection_error}), returning fallback plan.")
+            fallback = self.get_fallback_plan(language, region)
+            fallback["_source"] = "fallback"
+            return fallback
         
         # Clean up any potential markdown formatting
         cleaned_response = raw_response.strip()

@@ -72,11 +72,26 @@ export default function NutritionScreen() {
       const response = await axios.post(`${API_URL}/api/nutrition/meal-plan/generate`, { region }, { headers });
       if (response.data && response.data.plan) {
         setMealPlan(response.data.plan.plan_data);
-        Alert.alert(t('Success', 'Success'), t('MealPlanGenerated', 'AI Meal Plan generated successfully! 🌸'));
+        const isFallback = response.data.plan.plan_data?._source === 'fallback';
+        if (isFallback) {
+          Alert.alert(
+            '📋 Curated Plan Loaded',
+            'The AI model is currently offline. A curated PCOS-friendly meal plan has been loaded instead. It will be replaced with a personalised AI plan when the AI is back online.'
+          );
+        } else {
+          Alert.alert(t('Success', 'Success'), t('MealPlanGenerated', 'AI Meal Plan generated successfully! 🌸'));
+        }
       }
     } catch (error: any) {
       console.error(error);
-      Alert.alert(t('Error', 'Error'), t('GenerationFailed', 'Failed to generate meal plan.'));
+      const status = error?.response?.status;
+      if (status === 401) {
+        Alert.alert('Session Expired', 'Please sign out and sign in again.');
+      } else if (!error?.response) {
+        Alert.alert('Network Error', 'Cannot reach the Sakhi server. Make sure you are on the same WiFi network as the backend and try again.');
+      } else {
+        Alert.alert(t('Error', 'Error'), t('GenerationFailed', 'Failed to generate meal plan. Please try again.'));
+      }
     } finally {
       setLoading(false);
     }

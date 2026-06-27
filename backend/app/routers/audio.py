@@ -25,7 +25,7 @@ def convert_to_wav_bytes(audio_bytes: bytes, filename: str) -> bytes:
     """
     Uses PyAV to decode any audio format (m4a, aac, mp4, webm, etc.)
     and re-encodes to a PCM WAV (16 kHz, mono) suitable for SpeechRecognition.
-    Falls back to returning raw bytes if PyAV is unavailable.
+    Falls back to returning raw bytes if PyAV is unavailable or conversion fails.
     """
     if not AV_AVAILABLE:
         return audio_bytes
@@ -34,45 +34,59 @@ def convert_to_wav_bytes(audio_bytes: bytes, filename: str) -> bytes:
     tmp_out_path = None
     try:
         suffix = os.path.splitext(filename)[1] or ".audio"
+
+        # Write incoming audio bytes to a temp input file
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_in:
             tmp_in.write(audio_bytes)
             tmp_in_path = tmp_in.name
 
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_out:
-            tmp_out_path = tmp_out.name
+        # Prepare a temp output path for the WAV
+        fd, tmp_out_path = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
 
-        with av.open(tmp_in_path) as container:
-            audio_stream = next(s for s in container.streams if s.type == "audio")
+        # Transcode to 16 kHz mono PCM WAV using PyAV
+        with av.open(tmp_in_path) as in_container:
+            audio_stream = next(
+                (s for s in in_container.streams if s.type == "audio"), None
+            )
+            if audio_stream is None:
+                raise RuntimeError("No audio stream found in uploaded file.")
+
             resampler = av.AudioResampler(
                 format="s16",
                 layout="mono",
                 rate=16000,
             )
 
-            output_container = av.open(tmp_out_path, mode="w", format="wav")
-            out_stream = output_container.add_stream("pcm_s16le", rate=16000)
-            out_stream.layout = "mono"
+            out_container = av.open(tmp_out_path, mode="w", format="wav")
+            out_stream = out_container.add_stream("pcm_s16le", rate=16000)
 
-            for frame in container.decode(audio_stream):
+            for frame in in_container.decode(audio_stream):
+                frame.pts = None
                 for resampled in resampler.resample(frame):
                     resampled.pts = None
                     for packet in out_stream.encode(resampled):
-                        output_container.mux(packet)
+                        out_container.mux(packet)
 
+            # Flush encoder
             for packet in out_stream.encode(None):
-                output_container.mux(packet)
-            output_container.close()
+                out_container.mux(packet)
 
+            out_container.close()
+
+        # Read converted WAV bytes
         with open(tmp_out_path, "rb") as f:
             wav_bytes = f.read()
 
         return wav_bytes
 
     except Exception as e:
-        raise RuntimeError(f"Audio conversion failed: {e}")
+        # Gracefully fall back to raw bytes; SpeechRecognition will try its best
+        print(f"[audio] PyAV conversion failed ({e}), falling back to raw bytes.")
+        return audio_bytes
     finally:
         for path in [tmp_in_path, tmp_out_path]:
-            if path:
+            if path and os.path.exists(path):
                 try:
                     os.unlink(path)
                 except Exception:
