@@ -255,7 +255,7 @@ export default function NutritionScreen() {
             >
               {isExporting
                 ? <ActivityIndicator color={Colors.white} />
-                : <Text style={styles.exportButtonText}>📄 {t('ExportPDF', 'Export Meal Plan as PDF')}</Text>
+                : <Text style={styles.exportButtonText}>📥 {t('DownloadPDF', 'Download Meal Plan (PDF)')}</Text>
               }
             </TouchableOpacity>
           )}
