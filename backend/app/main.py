@@ -40,7 +40,7 @@ async def health_check():
     return {
         "status": "healthy",
         "database": "Supabase configured",
-        "ai_agent_engine": "Ollama/BioMistral-7B",
+        "ai_agent_engine": f"Ollama/{settings.AI_MODEL}",
         "ai_ready": ai_ready
     }
 
