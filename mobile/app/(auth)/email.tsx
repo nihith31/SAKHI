@@ -59,7 +59,7 @@ export default function EmailScreen() {
           if (profile?.display_name) {
             router.replace('/');
           } else {
-            router.replace('/onboarding');
+            router.replace('/(auth)/onboarding');
           }
         }
       } else {
@@ -80,7 +80,7 @@ export default function EmailScreen() {
           if (profile?.display_name) {
             router.replace('/');
           } else {
-            router.replace('/onboarding');
+            router.replace('/(auth)/onboarding');
           }
         }
       }

@@ -13,7 +13,7 @@ export default function WelcomeScreen() {
   const selectLanguage = async (lang: 'en' | 'hi' | 'te') => {
     await AsyncStorage.setItem('user-language', lang);
     i18n.changeLanguage(lang);
-    router.push('/email');
+    router.push('/(auth)/email');
   };
 
   return (
