@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
 // Configure how notifications appear when the app is in the foreground
@@ -50,7 +51,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   // Get the Expo push token
   try {
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const projectId = 
+      Constants.expoConfig?.extra?.eas?.projectId ?? 
+      Constants.easConfig?.projectId;
+    
+    if (!projectId) {
+      console.warn('[notifications] No Expo projectId found. Skipping push registration (this is normal in local Expo Go previews before EAS init).');
+      return null;
+    }
+
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     const token = tokenData.data;
     console.log('[notifications] Push token:', token);
     return token;
