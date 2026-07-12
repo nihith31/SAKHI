@@ -281,63 +281,64 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
-        {/* Header Panel */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('chat.title')}</Text>
-          <Text style={styles.headerSubtitle}>Medical-Aware PCOS Companion</Text>
-        </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
+          {/* Header Panel */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>{t('chat.title')}</Text>
+            <Text style={styles.headerSubtitle}>Medical-Aware PCOS Companion</Text>
+          </View>
 
-        {/* Persistent Disclaimer Banner */}
-        <View style={styles.disclaimerBanner}>
-          <Text style={styles.disclaimerBannerText}>
-            ⚠️ {t('chat.persistent_disclaimer', 'AI Companion: For educational purposes only. Verify critical medical advice with a healthcare provider.')}
-          </Text>
-        </View>
+          {/* Persistent Disclaimer Banner */}
+          <View style={styles.disclaimerBanner}>
+            <Text style={styles.disclaimerBannerText}>
+              ⚠️ {t('chat.persistent_disclaimer', 'AI Companion: For educational purposes only. Verify critical medical advice with a healthcare provider.')}
+            </Text>
+          </View>
 
-        {/* Message Feed */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessageItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.chatFeed}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>Namaste 🌸</Text>
-              <Text style={styles.emptyText}>
-                I'm your PCOS wellness companion. Ask me anything about cycles, nutritional adjustments, or daily symptoms.
-              </Text>
-              
-              {/* Suggestion Chips */}
-              <View style={styles.suggestionsContainer}>
-                {SUGGESTIONS.map((suggestion, idx) => (
-                  <TouchableOpacity 
-                    key={idx} 
-                    style={styles.suggestionChip}
-                    onPress={() => handleSendMessage(suggestion)}
-                  >
-                    <Text style={styles.suggestionText}>{suggestion}</Text>
-                  </TouchableOpacity>
-                ))}
+          {/* Message Feed */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessageItem}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.chatFeed}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>Namaste 🌸</Text>
+                <Text style={styles.emptyText}>
+                  I'm your PCOS wellness companion. Ask me anything about cycles, nutritional adjustments, or daily symptoms.
+                </Text>
+                
+                {/* Suggestion Chips */}
+                <View style={styles.suggestionsContainer}>
+                  {SUGGESTIONS.map((suggestion, idx) => (
+                    <TouchableOpacity 
+                      key={idx} 
+                      style={styles.suggestionChip}
+                      onPress={() => handleSendMessage(suggestion)}
+                    >
+                      <Text style={styles.suggestionText}>{suggestion}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
+            )}
+          />
+
+          {/* Typing Loader */}
+          {loading && (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.loaderText}>Sakhi is reflecting...</Text>
             </View>
           )}
-        />
 
-        {/* Typing Loader */}
-        {loading && (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.loaderText}>Sakhi is reflecting...</Text>
-          </View>
-        )}
-
-        {/* Input Dock */}
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
+          {/* Input Dock */}
           <View style={styles.inputDock}>
             <TextInput
               style={styles.textInput}
@@ -370,8 +371,8 @@ export default function ChatScreen() {
               <Text style={styles.sendButtonText}>{t('chat.send')}</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </LinearGradient>
+        </LinearGradient>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
