@@ -2,11 +2,17 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import * as Notifications from 'expo-notifications';
+import { useEffect, useState, useRef } from 'react';
 import 'react-native-reanimated';
 import { initI18n } from '../i18n';
 import { supabase } from '../services/supabase';
 import { Session } from '@supabase/supabase-js';
+import {
+  registerForPushNotifications,
+  savePushTokenToProfile,
+  scheduleDailySymptomReminder,
+} from '../services/notifications';
 
 import { useColorScheme } from '@/components/useColorScheme';
 
@@ -79,6 +85,19 @@ export default function RootLayout() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Register push notifications when user is authenticated
+  useEffect(() => {
+    if (!authReady || !session) return;
+
+    (async () => {
+      const token = await registerForPushNotifications();
+      if (token) {
+        await savePushTokenToProfile(token);
+        await scheduleDailySymptomReminder();
+      }
+    })();
+  }, [authReady, session]);
 
   useEffect(() => {
     if (error) throw error;

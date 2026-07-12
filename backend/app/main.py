@@ -7,6 +7,7 @@ from app.routers.tracker import router as tracker_router
 from app.routers.nutrition import router as nutrition_router
 from app.routers.lab_reports import router as lab_reports_router
 from app.routers.audio import router as audio_router
+from app.routers.notifications import router as notifications_router
 
 app = FastAPI(
     title="Sakhi Backend API",
@@ -32,6 +33,7 @@ app.include_router(tracker_router)
 app.include_router(nutrition_router)
 app.include_router(lab_reports_router)
 app.include_router(audio_router)
+app.include_router(notifications_router)
 
 @app.get("/")
 def read_root():

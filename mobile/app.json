@@ -30,6 +30,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#E67E80"
+        }
+      ],
+      [
         "expo-av",
         {
           "microphonePermission": "Sakhi needs microphone access to transcribe your voice into text for the chat."
