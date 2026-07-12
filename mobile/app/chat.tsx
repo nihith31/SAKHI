@@ -230,15 +230,14 @@ export default function ChatScreen() {
         }
       );
 
-      if (response.data && response.data.reply) {
-        const reply = response.data.reply;
+      if (response.data && response.data.response) {
         setMessages(prev => [
           ...prev,
           {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content: reply.content,
-            agent_used: reply.agent_used,
+            content: response.data.response,
+            agent_used: response.data.routed_agent,
           },
         ]);
       }
