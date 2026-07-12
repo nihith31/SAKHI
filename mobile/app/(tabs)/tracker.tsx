@@ -6,8 +6,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../services/themeContext';
 import { supabase } from '../../services/supabase';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+const OFFLINE_QUEUE_KEY = '@sakhi_offline_queue';
+
+interface OfflineLog {
+  id: string;
+  endpoint: string;
+  payload: any;
+  timestamp: number;
+}
 
 export default function TrackerScreen() {
   const { t } = useTranslation();
@@ -47,21 +56,80 @@ export default function TrackerScreen() {
     };
   };
 
+  const enqueueOfflineLog = async (endpoint: string, payload: any) => {
+    try {
+      const stored = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+      const queue: OfflineLog[] = stored ? JSON.parse(stored) : [];
+      
+      const newLog: OfflineLog = {
+        id: Math.random().toString(36).substring(7),
+        endpoint,
+        payload,
+        timestamp: Date.now()
+      };
+      
+      queue.push(newLog);
+      await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+      console.log('[offline tracker] Enqueued log for:', endpoint);
+    } catch (e) {
+      console.error('[offline tracker] Failed to enqueue:', e);
+    }
+  };
+
+  const syncOfflineQueue = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+      if (!stored) return;
+      
+      const queue: OfflineLog[] = JSON.parse(stored);
+      if (queue.length === 0) return;
+
+      console.log(`[offline tracker] Attempting to sync ${queue.length} logs...`);
+      const headers = await getHeaders();
+      const failedLogs: OfflineLog[] = [];
+
+      for (const log of queue) {
+        try {
+          await axios.post(`${API_URL}${log.endpoint}`, log.payload, { headers });
+          console.log('[offline tracker] Synced successfully:', log.endpoint);
+        } catch (err: any) {
+          console.log('[offline tracker] Sync failed for:', log.endpoint, err.message);
+          if (!err.response) {
+            failedLogs.push(log);
+          }
+        }
+      }
+
+      if (failedLogs.length !== queue.length) {
+        await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(failedLogs));
+        if (failedLogs.length === 0) {
+          console.log('[offline tracker] All logs synced successfully!');
+        }
+      }
+    } catch (e) {
+      console.error('[offline tracker] Error during queue sync:', e);
+    }
+  };
+
+  useEffect(() => {
+    syncOfflineQueue();
+  }, [activeTab]);
+
   const handleSaveSymptoms = async () => {
+    const payload = {
+      date: new Date().toISOString().split('T')[0],
+      energy_level: energyLevel,
+      mood: moodLevel,
+      pain_level: painLevel,
+      acne,
+      hair_loss: hairLoss,
+      bloating,
+      notes: notes || null
+    };
+
     setLoading(true);
     try {
       const headers = await getHeaders();
-      const payload = {
-        date: new Date().toISOString().split('T')[0],
-        energy_level: energyLevel,
-        mood: moodLevel,
-        pain_level: painLevel,
-        acne,
-        hair_loss: hairLoss,
-        bloating,
-        notes: notes || null
-      };
-
       await axios.post(`${API_URL}/api/tracker/symptom`, payload, { headers });
       Alert.alert(t('Success', 'Success'), t('SymptomsLogged', 'Daily symptoms logged successfully! 🌸'));
       // Reset physical symptoms/notes
@@ -71,7 +139,16 @@ export default function TrackerScreen() {
       setNotes('');
     } catch (error: any) {
       console.error(error);
-      Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save symptom log.'));
+      if (!error.response) {
+        await enqueueOfflineLog('/api/tracker/symptom', payload);
+        Alert.alert(t('OfflineMode', 'Offline Mode 🌸'), t('OfflineSymptomSaved', 'You are currently offline. Your symptom log has been saved locally and will sync once you are back online!'));
+        setAcne(false);
+        setHairLoss(false);
+        setBloating(false);
+        setNotes('');
+      } else {
+        Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save symptom log.'));
+      }
     } finally {
       setLoading(false);
     }
@@ -82,23 +159,31 @@ export default function TrackerScreen() {
       Alert.alert(t('Error', 'Error'), t('StartDateRequired', 'Please select a period start date.'));
       return;
     }
+    
+    const payload = {
+      period_start: periodStart,
+      period_end: periodEnd || null,
+      flow_intensity: flowIntensity,
+      notes: cycleNotes || null
+    };
+
     setLoading(true);
     try {
       const headers = await getHeaders();
-      const payload = {
-        period_start: periodStart,
-        period_end: periodEnd || null,
-        flow_intensity: flowIntensity,
-        notes: cycleNotes || null
-      };
-
       await axios.post(`${API_URL}/api/tracker/cycle`, payload, { headers });
       Alert.alert(t('Success', 'Success'), t('CycleLogged', 'Cycle entry saved successfully! 🌸'));
       setPeriodEnd('');
       setCycleNotes('');
     } catch (error: any) {
       console.error(error);
-      Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save cycle log.'));
+      if (!error.response) {
+        await enqueueOfflineLog('/api/tracker/cycle', payload);
+        Alert.alert(t('OfflineMode', 'Offline Mode 🌸'), t('OfflineCycleSaved', 'You are currently offline. Your cycle log has been saved locally and will sync once you are back online!'));
+        setPeriodEnd('');
+        setCycleNotes('');
+      } else {
+        Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save cycle log.'));
+      }
     } finally {
       setLoading(false);
     }
@@ -110,20 +195,27 @@ export default function TrackerScreen() {
       Alert.alert(t('Error', 'Error'), t('InvalidWeight', 'Please enter a valid weight in kg.'));
       return;
     }
+
+    const payload = {
+      date: new Date().toISOString().split('T')[0],
+      weight_kg: parsedWeight
+    };
+
     setLoading(true);
     try {
       const headers = await getHeaders();
-      const payload = {
-        date: new Date().toISOString().split('T')[0],
-        weight_kg: parsedWeight
-      };
-
       await axios.post(`${API_URL}/api/tracker/weight`, payload, { headers });
       Alert.alert(t('Success', 'Success'), t('WeightLogged', 'Weight entry saved successfully! 🌸'));
       setWeight('');
     } catch (error: any) {
       console.error(error);
-      Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save weight log.'));
+      if (!error.response) {
+        await enqueueOfflineLog('/api/tracker/weight', payload);
+        Alert.alert(t('OfflineMode', 'Offline Mode 🌸'), t('OfflineWeightSaved', 'You are currently offline. Your weight log has been saved locally and will sync once you are back online!'));
+        setWeight('');
+      } else {
+        Alert.alert(t('Error', 'Error'), t('LogFailed', 'Failed to save weight log.'));
+      }
     } finally {
       setLoading(false);
     }

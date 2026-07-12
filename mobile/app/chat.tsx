@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Keyboard } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Keyboard, Animated } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +60,49 @@ export default function ChatScreen() {
       hideSubscription.remove();
     };
   }, []);
+
+  const wave1 = useRef(new Animated.Value(1)).current;
+  const wave2 = useRef(new Animated.Value(1)).current;
+  const wave3 = useRef(new Animated.Value(1)).current;
+  const wave4 = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    let animations: Animated.CompositeAnimation[] = [];
+    
+    if (isRecording) {
+      const createLoop = (val: Animated.Value, maxVal: number, duration: number) => {
+        return Animated.loop(
+          Animated.sequence([
+            Animated.timing(val, {
+              toValue: maxVal,
+              duration: duration,
+              useNativeDriver: true,
+            }),
+            Animated.timing(val, {
+              toValue: 0.2,
+              duration: duration,
+              useNativeDriver: true,
+            }),
+          ])
+        );
+      };
+
+      animations = [
+        createLoop(wave1, 1.8, 300),
+        createLoop(wave2, 2.4, 400),
+        createLoop(wave3, 1.5, 250),
+        createLoop(wave4, 2.0, 350),
+      ];
+
+      animations.forEach(anim => anim.start());
+    } else {
+      [wave1, wave2, wave3, wave4].forEach(val => val.setValue(1));
+    }
+
+    return () => {
+      animations.forEach(anim => anim.stop());
+    };
+  }, [isRecording]);
 
   // Strips markdown symbols, emojis and URLs before passing text to TTS
   const cleanForSpeech = (text: string): string => {
@@ -363,13 +406,27 @@ export default function ChatScreen() {
         <View style={styles.inputDock}>
           <TextInput
             style={styles.textInput}
-            placeholder={t('chat.placeholder')}
+            placeholder={
+              isTranscribing
+                ? "Transcribing your voice... 🎙️"
+                : isRecording
+                ? "Listening closely... 🎙️"
+                : t('chat.placeholder')
+            }
             placeholderTextColor={colors.textLight}
             value={inputText}
             onChangeText={setInputText}
             multiline
+            editable={!loading && !isTranscribing && !isRecording}
           />
-          {/* Mic button: red when recording, pulsing spinner when transcribing */}
+          {isRecording && (
+            <View style={styles.waveformContainer}>
+              <Animated.View style={[styles.waveBar, { transform: [{ scaleY: wave1 }] }]} />
+              <Animated.View style={[styles.waveBar, { transform: [{ scaleY: wave2 }] }]} />
+              <Animated.View style={[styles.waveBar, { transform: [{ scaleY: wave3 }] }]} />
+              <Animated.View style={[styles.waveBar, { transform: [{ scaleY: wave4 }] }]} />
+            </View>
+          )}
           <TouchableOpacity
             style={[
               styles.micButton,
@@ -387,7 +444,7 @@ export default function ChatScreen() {
           <TouchableOpacity 
             style={styles.sendButton}
             onPress={() => handleSendMessage(inputText)}
-            disabled={loading}
+            disabled={loading || isRecording || isTranscribing}
           >
             <Text style={styles.sendButtonText}>{t('chat.send')}</Text>
           </TouchableOpacity>
@@ -579,6 +636,20 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   sendButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
+  },
+  waveformContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    height: 32,
+  },
+  waveBar: {
+    width: 3.5,
+    height: 16,
+    backgroundColor: colors.primary,
+    borderRadius: 1.75,
   },
   micButton: {
     width: 42,

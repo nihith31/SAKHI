@@ -14,6 +14,34 @@ router = APIRouter(
 class GenerateMealPlanRequest(BaseModel):
     region: Optional[str] = "general" # "south_indian", "north_indian", "general"
 
+class SwapMealRequest(BaseModel):
+    meal_type: str
+    region: str
+    current_meal: str
+
+@router.post("/meal-plan/swap")
+async def swap_individual_meal(req: SwapMealRequest, current_user=Depends(get_current_user)):
+    try:
+        profile_response = supabase_admin.table("profiles")\
+            .select("*")\
+            .eq("id", current_user.id)\
+            .single()\
+            .execute()
+            
+        language = "en"
+        if profile_response.data:
+            language = profile_response.data.get("language", "en")
+            
+        new_meal = await meal_planner.swap_meal(
+            language=language,
+            region=req.region,
+            meal_type=req.meal_type,
+            current_meal=req.current_meal
+        )
+        return {"new_meal": new_meal}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/meal-plan")
 async def get_meal_plan(current_user=Depends(get_current_user)):
     try:

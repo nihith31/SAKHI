@@ -5,12 +5,17 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../services/themeContext';
 import { supabase } from '../../services/supabase';
 import { useRouter } from 'expo-router';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { colors } = useTheme();
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [recommendationCard, setRecommendationCard] = useState<any>(null);
 
   // ─── Micro-animation: Fade-in on mount ─────────────────────────────────
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -33,6 +38,7 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     fetchUserProfile();
+    fetchRecentSymptoms();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -49,6 +55,88 @@ export default function DashboardScreen() {
     } catch (error) {
       console.log('Error fetching user profile:', error);
     }
+  };
+
+  const generateRecommendationCard = (log: any) => {
+    if (log.bloating) {
+      setRecommendationCard({
+        title: t('RecCardBloatingTitle', 'Comfort for Bloating 🍵'),
+        text: t('RecCardBloatingText', 'Bloating logged recently. Try a 10-minute Reclining Bound Angle pose (Supta Baddha Konasana) and sip warm spearmint tea for relief.'),
+        accent: 'primary'
+      });
+    } else if (log.pain_level && log.pain_level > 3) {
+      setRecommendationCard({
+        title: t('RecCardPainTitle', 'Period Cramp Relief 🧘'),
+        text: t('RecCardPainText', 'High cramp pain logged. Avoid cold beverages and processed sugar, prioritize a warm heating pad, and focus on slow, gentle yoga.'),
+        accent: 'primary'
+      });
+    } else if (log.energy_level && log.energy_level < 3) {
+      setRecommendationCard({
+        title: t('RecCardEnergyTitle', 'Recharge Your Battery ⚡'),
+        text: t('RecCardEnergyText', 'Low energy logged. Swap high-intensity workouts for restorative walks, and focus on magnesium-rich snacks like dark chocolate and almonds.'),
+        accent: 'secondary'
+      });
+    } else if (log.acne || log.hair_loss) {
+      setRecommendationCard({
+        title: t('RecCardAndrogensTitle', 'Hormonal Balance Tips 🌸'),
+        text: t('RecCardAndrogensText', 'Acne or hair thinning logged. Adding zinc (from seeds and lentils) and keeping stress levels low will help balance your androgenic markers.'),
+        accent: 'primary'
+      });
+    } else {
+      setRecommendationCard({
+        title: t('RecCardGreatTitle', 'Hormonal Harmony 🌸'),
+        text: t('RecCardGreatText', 'Log entries show good energy levels and low symptoms. Keep logging to track patterns through different phases of your cycle!'),
+        accent: 'secondary'
+      });
+    }
+  };
+
+  const fetchRecentSymptoms = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const res = await axios.get(`${API_URL}/api/tracker/symptoms`, {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      
+      const logs = res.data || [];
+      if (logs.length > 0) {
+        const latest = logs[0];
+        const logDate = new Date(latest.date);
+        const diffTime = Math.abs(new Date().getTime() - logDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 7) {
+          generateRecommendationCard(latest);
+          return;
+        }
+      }
+    } catch (err) {
+      console.log('Error fetching symptoms for cards, checking offline logs:', err);
+    }
+    
+    // Check offline queue
+    try {
+      const stored = await AsyncStorage.getItem('@sakhi_offline_queue');
+      if (stored) {
+        const queue = JSON.parse(stored);
+        const trackerLogs = queue.filter((x: any) => x.endpoint === '/api/tracker/symptom');
+        if (trackerLogs.length > 0) {
+          trackerLogs.sort((a: any, b: any) => b.timestamp - a.timestamp);
+          generateRecommendationCard(trackerLogs[0].payload);
+          return;
+        }
+      }
+    } catch (e) {
+      console.log('Error checking offline logs:', e);
+    }
+    
+    setRecommendationCard({
+      title: t('DashboardStatusTitle', 'Welcome back! 🌸'),
+      text: t('DashboardStatusText', 'No symptoms logged this week. Keep up the consistent logging to help detect hormonal patterns!'),
+      accent: 'secondary'
+    });
   };
 
   const getGreeting = () => {
@@ -179,6 +267,25 @@ export default function DashboardScreen() {
               <Text style={[styles.labReportBannerArrow, { color: colors.primary }]}>→</Text>
             </View>
           </TouchableOpacity>
+
+          {/* Recent Symptom Action Card */}
+          {recommendationCard && (
+            <View style={[
+              styles.actionCard,
+              {
+                backgroundColor: colors.card,
+                borderLeftColor: recommendationCard.accent === 'primary' ? colors.primary : colors.secondary,
+                shadowColor: colors.shadow
+              }
+            ]}>
+              <Text style={[styles.actionCardTitle, { color: recommendationCard.accent === 'primary' ? colors.primary : colors.secondary }]}>
+                {recommendationCard.title}
+              </Text>
+              <Text style={[styles.actionCardText, { color: colors.textMedium }]}>
+                {recommendationCard.text}
+              </Text>
+            </View>
+          )}
 
           {/* Wellness Tip of the Day */}
           <View style={[styles.tipCard, { backgroundColor: colors.card, borderLeftColor: colors.primary, shadowColor: colors.shadow }]}>
@@ -340,5 +447,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginLeft: 10,
+  },
+  actionCard: {
+    borderRadius: 16,
+    padding: 20,
+    borderLeftWidth: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+    marginBottom: 20,
+  },
+  actionCardTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  actionCardText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

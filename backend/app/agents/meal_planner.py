@@ -112,5 +112,50 @@ class MealPlannerAgent:
                 "shopping_list": ["Bajra flour", "Jowar flour", "Sprouted Moong", "Lauki", "Spinach", "Paneer", "Makhana", "Methi seeds"],
                 "wellness_tips": ["Drink warm water with soaked fenugreek (methi) seeds in the morning.", "Include healthy fats like walnuts and flaxseeds for hormonal balance.", "Avoid refined flour (maida) and white sugar completely."]
             }
+
+    async def swap_meal(self, language: str, region: str, meal_type: str, current_meal: str) -> str:
+        lang_instruction = "Respond in simple English."
+        if language == 'hi':
+            lang_instruction = "Respond completely in Hindi (using simple everyday Hindi/Hinglish characters)."
+        elif language == 'te':
+            lang_instruction = "Respond completely in Telugu (using simple everyday Telugu characters or Telugu-English blend)."
+
+        region_info = "general PCOS guidelines"
+        if region == "south_indian":
+            region_info = "South Indian diet preferences (using ragi, millets, brown rice, etc.)"
+        elif region == "north_indian":
+            region_info = "North Indian diet preferences (using jowar, bajra, methi, etc.)"
+
+        prompt = (
+            f"You are a clinical dietitian specialized in PCOS nutrition.\n"
+            f"The user has a PCOS meal plan with {region_info}.\n"
+            f"Their current meal for {meal_type} is: '{current_meal}'.\n"
+            f"Suggest exactly ONE healthy, low-GI alternative meal in the same regional preference.\n"
+            f"{lang_instruction}\n"
+            "Return ONLY the food name as a single short string (maximum 10 words). Do not write full sentences or bullet points. "
+            "For example: 'Ragi Idli with Mint Chutney'"
+        )
+
+        messages = [{"role": "user", "content": prompt}]
+        try:
+            raw_response = await ai_service.chat(messages, model=settings.NVIDIA_MODEL_PLANNER)
+            return raw_response.strip().replace('"', '')
+        except Exception as e:
+            print(f"[meal_planner] AI swap failed ({e}), returning default fallback.")
+            if region == "south_indian":
+                fallbacks = {
+                    "breakfast": "Millet Dosa with Coconut Chutney",
+                    "lunch": "Brown Rice with Vegetable Sambar",
+                    "snack": "Boiled Chana / Chickpeas",
+                    "dinner": "Jowar Roti with Moringa Curry"
+                }
+            else:
+                fallbacks = {
+                    "breakfast": "Sprouted Moong Cheela",
+                    "lunch": "Jowar Roti with Lauki Sabji",
+                    "snack": "Roasted Makhana",
+                    "dinner": "Paneer Tikka with Green Salad"
+                }
+            return fallbacks.get(meal_type.lower(), "Healthy PCOS Green Salad")
             
 meal_planner = MealPlannerAgent()
