@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../services/themeContext';
 import { supabase } from '../../services/supabase';
 
 const LANGUAGES = [
@@ -31,6 +31,7 @@ type LangCode = 'en' | 'hi' | 'te';
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const { colors, isDark, toggleTheme } = useTheme();
   
   // Profile States
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -85,7 +86,10 @@ export default function ProfileScreen() {
 
   const handleSaveProfile = async () => {
     if (!editName.trim() || !editAge.trim()) {
-      Alert.alert(t('onboarding.incomplete_fields', { defaultValue: 'Incomplete Fields' }), t('onboarding.incomplete_fields_message', { defaultValue: 'Please enter your name and age.' }));
+      Alert.alert(
+        t('onboarding.incomplete_fields', { defaultValue: 'Incomplete Fields' }), 
+        t('onboarding.incomplete_fields_message', { defaultValue: 'Please enter your name and age.' })
+      );
       return;
     }
 
@@ -155,16 +159,16 @@ export default function ProfileScreen() {
     : '🌸';
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={Colors.canvasGradient as any} style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <LinearGradient colors={colors.canvasGradient} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* ── Avatar & Name Card ─────────────────────────────── */}
           <LinearGradient
-            colors={[Colors.primary, Colors.primaryDark]}
+            colors={[colors.primary, colors.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.profileCard}
+            style={[styles.profileCard, { shadowColor: colors.shadow }]}
           >
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarText}>{initials}</Text>
@@ -192,8 +196,8 @@ export default function ProfileScreen() {
 
           {/* ── Language Switcher ──────────────────────────────── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🌐 Language / भाषा / భాష</Text>
-            <Text style={styles.sectionSubtitle}>
+            <Text style={[styles.sectionTitle, { color: colors.textDark }]}>🌐 Language / भाषा / భాష</Text>
+            <Text style={[styles.sectionSubtitle, { color: colors.textLight }]}>
               Select the language for Sakhi's responses and UI
             </Text>
             <View style={styles.languageGrid}>
@@ -202,18 +206,22 @@ export default function ProfileScreen() {
                 return (
                   <TouchableOpacity
                     key={lang.code}
-                    style={[styles.langCard, isActive && styles.langCardActive]}
+                    style={[
+                      styles.langCard, 
+                      { backgroundColor: colors.card, borderColor: colors.cardBorder, shadowColor: colors.shadow },
+                      isActive && { borderColor: colors.primary, backgroundColor: colors.primaryLight }
+                    ]}
                     onPress={() => handleLanguageChange(lang.code)}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.langNative, isActive && styles.langNativeActive]}>
+                    <Text style={[styles.langNative, { color: colors.textDark }, isActive && { color: colors.primaryDark }]}>
                       {lang.native}
                     </Text>
-                    <Text style={[styles.langLabel, isActive && styles.langLabelActive]}>
+                    <Text style={[styles.langLabel, { color: colors.textLight }, isActive && { color: colors.primary, fontWeight: '600' }]}>
                       {lang.label}
                     </Text>
                     {isActive && (
-                      <View style={styles.activeIndicator}>
+                      <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]}>
                         <Text style={styles.activeIndicatorText}>✓</Text>
                       </View>
                     )}
@@ -223,17 +231,66 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {/* ── Theme Switcher ────────────────────────────────── */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textDark }]}>🌓 Theme / थीम / థీమ్</Text>
+            <Text style={[styles.sectionSubtitle, { color: colors.textLight }]}>
+              Choose light or dark mode styling
+            </Text>
+            <View style={styles.languageGrid}>
+              <TouchableOpacity
+                style={[
+                  styles.langCard, 
+                  { backgroundColor: colors.card, borderColor: colors.cardBorder, shadowColor: colors.shadow },
+                  !isDark && { borderColor: colors.primary, backgroundColor: colors.primaryLight }
+                ]}
+                onPress={() => isDark && toggleTheme()}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 24, marginBottom: 4 }}>☀️</Text>
+                <Text style={[styles.langNative, { color: colors.textDark }, !isDark && { color: colors.primaryDark }]}>
+                  Light
+                </Text>
+                {!isDark && (
+                  <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.activeIndicatorText}>✓</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.langCard, 
+                  { backgroundColor: colors.card, borderColor: colors.cardBorder, shadowColor: colors.shadow },
+                  isDark && { borderColor: colors.primary, backgroundColor: colors.primaryLight }
+                ]}
+                onPress={() => !isDark && toggleTheme()}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 24, marginBottom: 4 }}>🌙</Text>
+                <Text style={[styles.langNative, { color: colors.textDark }, isDark && { color: colors.primaryDark }]}>
+                  Dark
+                </Text>
+                {isDark && (
+                  <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.activeIndicatorText}>✓</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* ── App Info ───────────────────────────────────────── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ℹ️ About Sakhi</Text>
-            <View style={styles.infoCard}>
+            <Text style={[styles.sectionTitle, { color: colors.textDark }]}>ℹ️ About Sakhi</Text>
+            <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, shadowColor: colors.shadow }]}>
               <InfoRow label="Version" value="1.0.0" />
             </View>
           </View>
 
           {/* ── Disclaimer ────────────────────────────────────── */}
-          <View style={styles.disclaimerBox}>
-            <Text style={styles.disclaimerText}>
+          <View style={[styles.disclaimerBox, isDark && { backgroundColor: '#2C1D18', borderLeftColor: colors.primary }]}>
+            <Text style={[styles.disclaimerText, isDark && { color: '#E8D4C8' }]}>
               ⚠️ Sakhi is an AI companion for educational purposes only.
               All health guidance should be verified with a certified healthcare provider.
             </Text>
@@ -241,7 +298,7 @@ export default function ProfileScreen() {
 
           {/* ── Sign Out ──────────────────────────────────────── */}
           <TouchableOpacity
-            style={styles.signOutButton}
+            style={[styles.signOutButton, { backgroundColor: colors.error, shadowColor: colors.error }]}
             onPress={handleSignOut}
             disabled={signingOut}
             activeOpacity={0.8}
@@ -267,75 +324,87 @@ export default function ProfileScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Profile 🌸</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <Text style={[styles.modalTitle, { color: colors.textDark }]}>Edit Profile 🌸</Text>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScroll}>
               
               {/* Name Input */}
-              <Text style={styles.modalLabel}>Your Name</Text>
+              <Text style={[styles.modalLabel, { color: colors.textDark }]}>Your Name</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.textDark }]}
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="e.g. Priyanjali"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
               />
 
               {/* Age Input */}
-              <Text style={styles.modalLabel}>Your Age</Text>
+              <Text style={[styles.modalLabel, { color: colors.textDark }]}>Your Age</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.textDark }]}
                 value={editAge}
                 onChangeText={setEditAge}
                 placeholder="e.g. 24"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 keyboardType="number-pad"
               />
 
               {/* PCOS Diagnosis */}
-              <Text style={styles.modalLabel}>Are you diagnosed with PCOS?</Text>
+              <Text style={[styles.modalLabel, { color: colors.textDark }]}>Are you diagnosed with PCOS?</Text>
               <View style={styles.modalRadioGroup}>
                 <TouchableOpacity
-                  style={[styles.modalRadioButton, editDiagnosed === true && styles.modalRadioActive]}
+                  style={[
+                    styles.modalRadioButton, 
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    editDiagnosed === true && { borderColor: colors.primary, backgroundColor: colors.primaryLight }
+                  ]}
                   onPress={() => setEditDiagnosed(true)}
                 >
-                  <Text style={[styles.modalRadioText, editDiagnosed === true && styles.modalRadioTextActive]}>Yes</Text>
+                  <Text style={[styles.modalRadioText, { color: colors.textMedium }, editDiagnosed === true && { color: colors.primaryDark }]}>Yes</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalRadioButton, editDiagnosed === false && styles.modalRadioActive]}
+                  style={[
+                    styles.modalRadioButton, 
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    editDiagnosed === false && { borderColor: colors.primary, backgroundColor: colors.primaryLight }
+                  ]}
                   onPress={() => setEditDiagnosed(false)}
                 >
-                  <Text style={[styles.modalRadioText, editDiagnosed === false && styles.modalRadioTextActive]}>No / Unsure</Text>
+                  <Text style={[styles.modalRadioText, { color: colors.textMedium }, editDiagnosed === false && { color: colors.primaryDark }]}>No / Unsure</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Diagnosis Year */}
               {editDiagnosed && (
                 <>
-                  <Text style={styles.modalLabel}>Year of Diagnosis (Optional)</Text>
+                  <Text style={[styles.modalLabel, { color: colors.textDark }]}>Year of Diagnosis (Optional)</Text>
                   <TextInput
-                    style={styles.modalInput}
+                    style={[styles.modalInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.textDark }]}
                     value={editDiagnosisYear}
                     onChangeText={setEditDiagnosisYear}
                     placeholder="e.g. 2023"
-                    placeholderTextColor={Colors.textLight}
+                    placeholderTextColor={colors.textLight}
                     keyboardType="number-pad"
                   />
                 </>
               )}
 
               {/* Goals Selection */}
-              <Text style={styles.modalLabel}>Primary Goals</Text>
+              <Text style={[styles.modalLabel, { color: colors.textDark }]}>Primary Goals</Text>
               <View style={styles.modalGoalsContainer}>
                 {GOALS_LIST.map((goal, idx) => {
                   const isSelected = editGoals.includes(goal);
                   return (
                     <TouchableOpacity
                       key={idx}
-                      style={[styles.modalGoalChip, isSelected && styles.modalGoalChipActive]}
+                      style={[
+                        styles.modalGoalChip, 
+                        { backgroundColor: colors.card, borderColor: colors.border },
+                        isSelected && { borderColor: colors.primary, backgroundColor: colors.primaryLight }
+                      ]}
                       onPress={() => toggleEditGoal(goal)}
                     >
-                      <Text style={[styles.modalGoalChipText, isSelected && styles.modalGoalChipTextActive]}>{goal}</Text>
+                      <Text style={[styles.modalGoalChipText, { color: colors.textMedium }, isSelected && { color: colors.primaryDark, fontWeight: '600' }]}>{goal}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -344,16 +413,16 @@ export default function ProfileScreen() {
             </ScrollView>
 
             {/* Action Buttons */}
-            <View style={styles.modalActionRow}>
+            <View style={[styles.modalActionRow, { borderTopColor: colors.border }]}>
               <TouchableOpacity
-                style={styles.modalCancelBtn}
+                style={[styles.modalCancelBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => setIsEditModalOpen(false)}
                 disabled={savingProfile}
               >
-                <Text style={styles.modalCancelBtnText}>Cancel</Text>
+                <Text style={[styles.modalCancelBtnText, { color: colors.textMedium }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalSaveBtn, savingProfile && styles.modalSaveBtnDisabled]}
+                style={[styles.modalSaveBtn, { backgroundColor: colors.primary }, savingProfile && { backgroundColor: colors.textLight }]}
                 onPress={handleSaveProfile}
                 disabled={savingProfile}
               >
@@ -372,10 +441,11 @@ export default function ProfileScreen() {
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+    <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.infoLabel, { color: colors.textMedium }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: colors.textDark }]}>{value}</Text>
     </View>
   );
 }
@@ -383,7 +453,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   container: {
     flex: 1,
@@ -399,7 +468,6 @@ const styles = StyleSheet.create({
     padding: 28,
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 16,
@@ -452,12 +520,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: 'bold',
-    color: Colors.textDark,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: Colors.textLight,
     marginBottom: 14,
   },
 
@@ -468,49 +534,28 @@ const styles = StyleSheet.create({
   },
   langCard: {
     flex: 1,
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
   },
-  langCardActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
-  },
-  langFlag: {
-    fontSize: 24,
-    marginBottom: 6,
-  },
   langNative: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: Colors.textDark,
     marginBottom: 2,
-  },
-  langNativeActive: {
-    color: Colors.primaryDark,
   },
   langLabel: {
     fontSize: 11,
-    color: Colors.textLight,
-  },
-  langLabelActive: {
-    color: Colors.primary,
-    fontWeight: '600',
   },
   activeIndicator: {
     marginTop: 6,
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -522,13 +567,10 @@ const styles = StyleSheet.create({
 
   // Info card
   infoCard: {
-    backgroundColor: Colors.white,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -540,15 +582,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   infoLabel: {
     fontSize: 14,
-    color: Colors.textMedium,
   },
   infoValue: {
     fontSize: 14,
-    color: Colors.textDark,
     fontWeight: '600',
   },
 
@@ -569,11 +608,9 @@ const styles = StyleSheet.create({
 
   // Sign out
   signOutButton: {
-    backgroundColor: Colors.error,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: Colors.error,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -608,7 +645,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.background,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
@@ -617,7 +653,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.textDark,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -627,18 +662,14 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: Colors.textDark,
     marginTop: 16,
     marginBottom: 8,
   },
   modalInput: {
-    backgroundColor: Colors.white,
     borderWidth: 1.5,
-    borderColor: Colors.border,
     borderRadius: 16,
     padding: 14,
     fontSize: 15,
-    color: Colors.textDark,
   },
   modalRadioGroup: {
     flexDirection: 'row',
@@ -646,24 +677,14 @@ const styles = StyleSheet.create({
   },
   modalRadioButton: {
     flex: 1,
-    backgroundColor: Colors.white,
     borderWidth: 1.5,
-    borderColor: Colors.border,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
   },
-  modalRadioActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
-  },
   modalRadioText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textMedium,
-  },
-  modalRadioTextActive: {
-    color: Colors.primaryDark,
   },
   modalGoalsContainer: {
     flexDirection: 'row',
@@ -671,39 +692,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   modalGoalChip: {
-    backgroundColor: Colors.white,
     borderWidth: 1.5,
-    borderColor: Colors.border,
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginBottom: 4,
   },
-  modalGoalChipActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
-  },
   modalGoalChipText: {
     fontSize: 13,
-    color: Colors.textMedium,
-  },
-  modalGoalChipTextActive: {
-    color: Colors.primaryDark,
-    fontWeight: '600',
   },
   modalActionRow: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     paddingTop: 16,
   },
   modalCancelBtn: {
     flex: 1,
-    backgroundColor: Colors.white,
     borderWidth: 1.5,
-    borderColor: Colors.border,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -711,17 +718,12 @@ const styles = StyleSheet.create({
   modalCancelBtnText: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: Colors.textMedium,
   },
   modalSaveBtn: {
     flex: 1,
-    backgroundColor: Colors.primary,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
-  },
-  modalSaveBtnDisabled: {
-    backgroundColor: Colors.textLight,
   },
   modalSaveBtnText: {
     fontSize: 15,

@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../services/themeContext';
 import { supabase } from '../services/supabase';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
@@ -27,6 +27,9 @@ interface LabReport {
 export default function LabReportScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
+
   const [uploading, setUploading] = useState(false);
   const [reports, setReports] = useState<LabReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
@@ -119,10 +122,10 @@ export default function LabReportScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'normal': return '#8FAB96';
+      case 'normal': return colors.secondary || '#8FAB96';
       case 'mildly_abnormal': return '#F5A623';
-      case 'significantly_abnormal': return '#E67E80';
-      default: return Colors.textLight;
+      case 'significantly_abnormal': return colors.primary || '#E67E80';
+      default: return colors.textLight;
     }
   };
 
@@ -162,8 +165,8 @@ export default function LabReportScreen() {
               {t('UploadedOn', 'Uploaded')} {new Date(report.created_at).toLocaleDateString()}
             </Text>
           </View>
-          <View style={[styles.analysisStatusBadge, { backgroundColor: hasAnalysis ? Colors.secondaryLight : Colors.primaryLight }]}>
-            <Text style={[styles.analysisStatusText, { color: hasAnalysis ? Colors.secondary : Colors.primary }]}>
+          <View style={[styles.analysisStatusBadge, { backgroundColor: hasAnalysis ? colors.secondaryLight : colors.primaryLight }]}>
+            <Text style={[styles.analysisStatusText, { color: hasAnalysis ? colors.secondary : colors.primary }]}>
               {hasAnalysis ? t('Analyzed', 'Analyzed') : t('Pending', 'Pending...')}
             </Text>
           </View>
@@ -200,7 +203,7 @@ export default function LabReportScreen() {
               </View>
             ) : (
               <View style={styles.pendingContainer}>
-                <ActivityIndicator color={Colors.primary} />
+                <ActivityIndicator color={colors.primary} />
                 <Text style={styles.pendingText}>{t('AnalysisPending', 'AI analysis in progress... Pull to refresh.')}</Text>
               </View>
             )}
@@ -211,7 +214,7 @@ export default function LabReportScreen() {
                 <Text style={styles.sectionHeading}>{t('KeyFindings', 'Key Findings')}</Text>
                 {keyFindings.map((finding, i) => (
                   <View key={i} style={styles.listRow}>
-                    <Text style={[styles.listBullet, { color: Colors.primary }]}>•</Text>
+                    <Text style={[styles.listBullet, { color: colors.primary }]}>•</Text>
                     <Text style={styles.listText}>{finding}</Text>
                   </View>
                 ))}
@@ -220,12 +223,12 @@ export default function LabReportScreen() {
 
             {/* Suggested Follow-up */}
             {suggestions.length > 0 && (
-              <View style={[styles.findingsSection, { backgroundColor: Colors.secondaryLight }]}>
-                <Text style={[styles.sectionHeading, { color: Colors.textDark }]}>{t('SuggestedFollowup', 'Suggested Next Steps')}</Text>
+              <View style={[styles.findingsSection, { backgroundColor: colors.secondaryLight }]}>
+                <Text style={[styles.sectionHeading, { color: colors.textDark }]}>{t('SuggestedFollowup', 'Suggested Next Steps')}</Text>
                 {suggestions.map((s, i) => (
                   <View key={i} style={styles.listRow}>
-                    <Text style={[styles.listBullet, { color: Colors.secondary }]}>💡</Text>
-                    <Text style={[styles.listText, { color: Colors.textMedium }]}>{s}</Text>
+                    <Text style={[styles.listBullet, { color: colors.secondary }]}>💡</Text>
+                    <Text style={[styles.listText, { color: colors.textMedium }]}>{s}</Text>
                   </View>
                 ))}
               </View>
@@ -251,7 +254,7 @@ export default function LabReportScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={Colors.canvasGradient as any} style={{ flex: 1 }}>
+      <LinearGradient colors={colors.canvasGradient} style={{ flex: 1 }}>
         {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -267,7 +270,6 @@ export default function LabReportScreen() {
           ⚠️ {t('persistent_disclaimer_medical')}
         </Text>
       </View>
-
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -291,7 +293,7 @@ export default function LabReportScreen() {
             disabled={uploading}
           >
             {uploading ? (
-              <ActivityIndicator color={Colors.white} />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.uploadButtonText}>{t('PickAndUpload', 'Select & Upload Report 📤')}</Text>
             )}
@@ -302,7 +304,7 @@ export default function LabReportScreen() {
         <Text style={styles.sectionTitle}>{t('PastReports', 'Your Reports')}</Text>
 
         {loadingReports ? (
-          <ActivityIndicator color={Colors.primary} style={{ marginTop: 20 }} />
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
         ) : reports.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>{t('NoReports', 'No lab reports uploaded yet.\nUpload your first report above! 🌟')}</Text>
@@ -316,32 +318,33 @@ export default function LabReportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 15,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   backBtn: {
+    alignSelf: 'flex-start',
     marginBottom: 10,
   },
   backBtnText: {
     fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '600',
+    color: colors.primary,
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: colors.textDark,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     marginTop: 4,
   },
   scrollContent: {
@@ -349,90 +352,87 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   uploadCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
     marginBottom: 25,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
+    borderColor: colors.cardBorder,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
   },
   uploadTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: colors.textDark,
     marginBottom: 8,
   },
   uploadDesc: {
-    fontSize: 14,
-    color: Colors.textMedium,
-    lineHeight: 20,
-    marginBottom: 14,
+    fontSize: 13,
+    color: colors.textMedium,
+    lineHeight: 18,
+    marginBottom: 16,
   },
   supportedFormats: {
     flexDirection: 'row',
-    marginBottom: 16,
     gap: 8,
+    marginBottom: 20,
   },
   formatTag: {
-    backgroundColor: Colors.primaryLight,
-    color: Colors.primary,
-    paddingHorizontal: 10,
+    fontSize: 11,
+    fontWeight: 'bold',
+    backgroundColor: colors.primaryLight,
+    color: colors.primary,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    fontSize: 12,
-    fontWeight: 'bold',
-    overflow: 'hidden',
-    marginRight: 8,
   },
   uploadButton: {
-    backgroundColor: Colors.primary,
-    height: 50,
+    backgroundColor: colors.primary,
+    height: 48,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   uploadButtonText: {
-    color: Colors.white,
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: 'bold',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: colors.textDark,
     marginBottom: 15,
   },
   reportCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 14,
+    marginBottom: 15,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
+    borderColor: colors.cardBorder,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
   },
   reportCardSelected: {
-    borderColor: Colors.primary,
-    borderWidth: 1.5,
+    borderColor: colors.primary,
   },
   reportCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   reportCardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primaryLight,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -444,19 +444,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   reportCardTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: colors.textDark,
   },
   reportCardDate: {
     fontSize: 12,
-    color: Colors.textLight,
+    color: colors.textLight,
     marginTop: 2,
   },
   analysisStatusBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   analysisStatusText: {
     fontSize: 11,
@@ -465,25 +465,25 @@ const styles = StyleSheet.create({
   analysisContainer: {
     marginTop: 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.background,
+    borderTopColor: colors.border,
     paddingTop: 16,
   },
   valuesSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   sectionHeading: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: Colors.textDark,
-    marginBottom: 10,
+    color: colors.textDark,
+    marginBottom: 12,
   },
   hormoneRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.background,
+    borderBottomColor: colors.border,
   },
   hormoneNameContainer: {
     flex: 1,
@@ -491,105 +491,108 @@ const styles = StyleSheet.create({
   hormoneName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textDark,
+    color: colors.textDark,
   },
   hormoneValue: {
     fontSize: 13,
-    color: Colors.textMedium,
+    color: colors.textLight,
     marginTop: 2,
   },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   statusBadgeText: {
     fontSize: 11,
     fontWeight: 'bold',
   },
   summarySection: {
-    backgroundColor: Colors.background,
-    padding: 14,
+    marginBottom: 20,
+    backgroundColor: colors.background,
+    padding: 16,
     borderRadius: 12,
-    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   summaryText: {
     fontSize: 14,
-    color: Colors.textDark,
-    lineHeight: 22,
+    color: colors.textDark,
+    lineHeight: 20,
   },
   pendingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 10,
-    marginBottom: 14,
+    backgroundColor: colors.primaryLight,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    marginBottom: 20,
   },
   pendingText: {
     fontSize: 13,
-    color: Colors.primary,
-    flex: 1,
+    color: colors.primary,
     marginLeft: 10,
+    fontWeight: '500',
   },
   findingsSection: {
-    padding: 14,
+    marginBottom: 20,
+    backgroundColor: colors.background,
+    padding: 16,
     borderRadius: 12,
-    marginBottom: 14,
-    backgroundColor: Colors.background,
   },
   listRow: {
     flexDirection: 'row',
     marginVertical: 4,
+    paddingRight: 10,
   },
   listBullet: {
-    fontSize: 16,
-    marginRight: 10,
-    lineHeight: 22,
+    fontSize: 14,
+    marginRight: 8,
   },
   listText: {
     fontSize: 14,
-    color: Colors.textDark,
-    flex: 1,
+    color: colors.textDark,
     lineHeight: 20,
+    flex: 1,
   },
   disclaimer: {
-    fontSize: 12,
-    color: Colors.textLight,
-    lineHeight: 18,
-    marginBottom: 14,
-    fontStyle: 'italic',
+    fontSize: 11,
+    color: colors.textLight,
+    lineHeight: 16,
     textAlign: 'center',
+    marginBottom: 20,
+    fontStyle: 'italic',
   },
   reanalyzeBtn: {
-    height: 40,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   reanalyzeBtnText: {
+    color: colors.primary,
     fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   emptyContainer: {
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    justifyContent: 'center',
+    marginTop: 40,
   },
   emptyText: {
-    fontSize: 15,
-    color: Colors.textLight,
+    fontSize: 14,
+    color: colors.textLight,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
   },
   disclaimerBanner: {
-    backgroundColor: '#FFF2F2',
+    backgroundColor: isDark ? '#2D1B1E' : '#FFF2F2',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: colors.border,
     paddingVertical: 8,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -597,10 +600,9 @@ const styles = StyleSheet.create({
   },
   disclaimerBannerText: {
     fontSize: 11,
-    color: '#422D30',
+    color: isDark ? '#F5C6C8' : '#422D30',
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 15,
   },
 });
-

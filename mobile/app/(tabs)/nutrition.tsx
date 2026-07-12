@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../services/themeContext';
 import { supabase } from '../../services/supabase';
 import axios from 'axios';
 import * as Print from 'expo-print';
@@ -31,6 +31,9 @@ interface PlanData {
 
 export default function NutritionScreen() {
   const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
+
   const [loading, setLoading] = useState(false);
   const [region, setRegion] = useState<'south_indian' | 'north_indian' | 'general'>('south_indian');
   const [mealPlan, setMealPlan] = useState<PlanData | null>(null);
@@ -199,29 +202,23 @@ export default function NutritionScreen() {
           ${tipsHtml}
           <p class="footer">⚠️ This plan is for educational purposes only. Always consult your healthcare provider before making dietary changes.</p>
         </body>
-        </html>`;
+        </html>
+      `;
 
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Save or Share Your Meal Plan',
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        Alert.alert('Exported!', `PDF saved to: ${uri}`);
-      }
-    } catch (err: any) {
-      Alert.alert('Export Failed', 'Could not export meal plan. Please try again.');
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+      Alert.alert('Export Failed', 'An error occurred while generating or sharing the PDF.');
     } finally {
       setIsExporting(false);
     }
   };
 
+  const selectedDayPlan = mealPlan ? (mealPlan[selectedDay as keyof PlanData] as MealDay) : null;
+
   return (
-    <LinearGradient colors={Colors.canvasGradient} style={styles.container}>
+    <LinearGradient colors={colors.canvasGradient} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('MealPlannerTitle', 'PCOS Meal Planner 🍛')}</Text>
         <Text style={styles.subtitle}>{t('MealPlannerSubtitle', 'Holistic regional diet plans built for you')}</Text>
@@ -234,9 +231,8 @@ export default function NutritionScreen() {
         </Text>
       </View>
 
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Setup / Preference card */}
+        {/* Diet Selector Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('DietPreference', 'Dietary Preference')}</Text>
           <Text style={styles.cardDescription}>
@@ -260,19 +256,18 @@ export default function NutritionScreen() {
           </View>
 
           <TouchableOpacity style={styles.generateButton} onPress={handleGeneratePlan} disabled={loading}>
-            {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.generateButtonText}>{t('GenerateMealPlan', 'Generate Weekly Plan ✨')}</Text>}
+            {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.generateButtonText}>{t('GenerateMealPlan', 'Generate Weekly Plan ✨')}</Text>}
           </TouchableOpacity>
 
-          {/* Export to PDF button — only shown when a plan exists */}
           {mealPlan && (
             <TouchableOpacity
               style={styles.exportButton}
-              onPress={exportMealPlanAsPDF}
+              onPress={() => exportMealPlanAsPDF()}
               disabled={isExporting}
             >
-              {isExporting
-                ? <ActivityIndicator color={Colors.white} />
-                : <Text style={styles.exportButtonText}>📥 {t('DownloadPDF', 'Download Meal Plan (PDF)')}</Text>
+              {isExporting 
+                ? <ActivityIndicator color="#FFFFFF" />
+                : <Text style={styles.exportButtonText}>📥 Download PDF Plan</Text>
               }
             </TouchableOpacity>
           )}
@@ -280,53 +275,55 @@ export default function NutritionScreen() {
 
         {mealPlan ? (
           <>
-            {/* Days Selector */}
-            <View style={styles.daysContainer}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {DAYS_OF_WEEK.map((d) => (
+            {/* Horizontal Day Tabs */}
+            <View style={{ marginBottom: 15 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.daysContainer}>
+                {DAYS_OF_WEEK.map((day) => (
                   <TouchableOpacity
-                    key={d.key}
-                    style={[styles.dayTab, selectedDay === d.key && styles.dayTabActive]}
-                    onPress={() => setSelectedDay(d.key)}
+                    key={day.key}
+                    style={[styles.dayTab, selectedDay === day.key && styles.dayTabActive]}
+                    onPress={() => setSelectedDay(day.key)}
                   >
-                    <Text style={[styles.dayTabText, selectedDay === d.key && styles.dayTabTextActive]}>{d.label}</Text>
+                    <Text style={[styles.dayTabText, selectedDay === day.key && styles.dayTabTextActive]}>
+                      {day.label}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
 
-            {/* Selected Day Meals */}
-            {mealPlan[selectedDay as keyof PlanData] ? (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>{DAYS_OF_WEEK.find(d => d.key === selectedDay)?.label} {t('Menu', 'Menu')}</Text>
-                
-                {/* Breakfast */}
-                <View style={styles.mealSection}>
-                  <Text style={styles.mealLabel}>🍳 {t('Breakfast', 'Breakfast')}</Text>
-                  <Text style={styles.mealValue}>{(mealPlan[selectedDay as keyof PlanData] as MealDay).breakfast}</Text>
-                </View>
+            {/* Menu Card */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>🍳 {DAYS_OF_WEEK.find(d => d.key === selectedDay)?.label} {t('Menu', 'Menu')}</Text>
 
-                {/* Lunch */}
-                <View style={styles.mealSection}>
-                  <Text style={styles.mealLabel}>🍛 {t('Lunch', 'Lunch')}</Text>
-                  <Text style={styles.mealValue}>{(mealPlan[selectedDay as keyof PlanData] as MealDay).lunch}</Text>
-                </View>
+              {selectedDayPlan ? (
+                <View>
+                  <View style={styles.mealSection}>
+                    <Text style={styles.mealLabel}>{t('Breakfast', 'Breakfast')}</Text>
+                    <Text style={styles.mealValue}>{selectedDayPlan.breakfast}</Text>
+                  </View>
 
-                {/* Snack */}
-                <View style={styles.mealSection}>
-                  <Text style={styles.mealLabel}>🥜 {t('Snack', 'Evening Snack')}</Text>
-                  <Text style={styles.mealValue}>{(mealPlan[selectedDay as keyof PlanData] as MealDay).snack}</Text>
-                </View>
+                  <View style={styles.mealSection}>
+                    <Text style={styles.mealLabel}>{t('Lunch', 'Lunch')}</Text>
+                    <Text style={styles.mealValue}>{selectedDayPlan.lunch}</Text>
+                  </View>
 
-                {/* Dinner */}
-                <View style={styles.mealSection}>
-                  <Text style={styles.mealLabel}>🍲 {t('Dinner', 'Dinner')}</Text>
-                  <Text style={styles.mealValue}>{(mealPlan[selectedDay as keyof PlanData] as MealDay).dinner}</Text>
-                </View>
-              </View>
-            ) : null}
+                  <View style={styles.mealSection}>
+                    <Text style={styles.mealLabel}>{t('Snack', 'Evening Snack')}</Text>
+                    <Text style={styles.mealValue}>{selectedDayPlan.snack}</Text>
+                  </View>
 
-            {/* Shopping List */}
+                  <View style={styles.mealSection}>
+                    <Text style={styles.mealLabel}>{t('Dinner', 'Dinner')}</Text>
+                    <Text style={styles.mealValue}>{selectedDayPlan.dinner}</Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={styles.emptyText}>No plan generated for this day.</Text>
+              )}
+            </View>
+
+            {/* Grocery List */}
             {mealPlan.shopping_list && mealPlan.shopping_list.length > 0 ? (
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>🛒 {t('ShoppingList', 'Grocery Shopping List')}</Text>
@@ -341,12 +338,12 @@ export default function NutritionScreen() {
 
             {/* Wellness Tips */}
             {mealPlan.wellness_tips && mealPlan.wellness_tips.length > 0 ? (
-              <View style={[styles.card, { backgroundColor: Colors.secondaryLight }]}>
-                <Text style={[styles.cardTitle, { color: Colors.textDark }]}>💡 {t('WellnessTips', 'PCOS Wellness Tips')}</Text>
+              <View style={[styles.card, { backgroundColor: colors.secondaryLight }]}>
+                <Text style={[styles.cardTitle, { color: colors.textDark }]}>💡 {t('WellnessTips', 'PCOS Wellness Tips')}</Text>
                 {mealPlan.wellness_tips.map((tip, index) => (
                   <View key={index} style={styles.listItem}>
-                    <Text style={[styles.listItemBullet, { color: Colors.secondary }]}>•</Text>
-                    <Text style={[styles.listItemText, { color: Colors.textMedium }]}>{tip}</Text>
+                    <Text style={[styles.listItemBullet, { color: colors.secondary }]}>•</Text>
+                    <Text style={[styles.listItemText, { color: colors.textMedium }]}>{tip}</Text>
                   </View>
                 ))}
               </View>
@@ -355,7 +352,7 @@ export default function NutritionScreen() {
         ) : (
           !loading && (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>{t('NoPlanGenerated', 'No weekly meal plan generated yet. Select a preference and click generate above! 🌟')}</Text>
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>{t('NoPlanGenerated', 'No weekly meal plan generated yet. Select a preference and click generate above! 🌟')}</Text>
             </View>
           )
         )}
@@ -364,7 +361,7 @@ export default function NutritionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -376,11 +373,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: colors.textDark,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     marginTop: 4,
   },
   scrollContent: {
@@ -388,27 +385,27 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
-    shadowColor: Colors.shadow,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.cardBorder,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: colors.textDark,
     marginBottom: 10,
   },
   cardDescription: {
     fontSize: 14,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     marginBottom: 18,
     lineHeight: 20,
   },
@@ -423,25 +420,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 8,
     marginHorizontal: 3,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   regionBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   regionBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.textMedium,
+    color: colors.textMedium,
   },
   regionBtnTextActive: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   generateButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     height: 48,
     borderRadius: 12,
     justifyContent: 'center',
@@ -449,7 +446,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   generateButtonText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -461,7 +458,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   exportButtonText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -472,38 +469,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.white,
+    backgroundColor: colors.card,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
   },
   dayTabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   dayTabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textMedium,
+    color: colors.textMedium,
   },
   dayTabTextActive: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   mealSection: {
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.background,
+    borderBottomColor: colors.border,
     paddingBottom: 10,
   },
   mealLabel: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: 4,
   },
   mealValue: {
     fontSize: 15,
-    color: Colors.textDark,
+    color: colors.textDark,
     lineHeight: 22,
   },
   listItem: {
@@ -513,13 +510,13 @@ const styles = StyleSheet.create({
   },
   listItemBullet: {
     fontSize: 16,
-    color: Colors.primary,
+    color: colors.primary,
     marginRight: 10,
     lineHeight: 22,
   },
   listItemText: {
     fontSize: 15,
-    color: Colors.textDark,
+    color: colors.textDark,
     lineHeight: 22,
     flex: 1,
   },
@@ -530,14 +527,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: Colors.textLight,
+    color: colors.textLight,
     textAlign: 'center',
     lineHeight: 22,
   },
   disclaimerBanner: {
-    backgroundColor: '#FFF2F2',
+    backgroundColor: isDark ? '#2D1B1E' : '#FFF2F2',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: colors.border,
     paddingVertical: 8,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -545,10 +542,9 @@ const styles = StyleSheet.create({
   },
   disclaimerBannerText: {
     fontSize: 11,
-    color: '#422D30',
+    color: isDark ? '#F5C6C8' : '#422D30',
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 15,
   },
 });
-

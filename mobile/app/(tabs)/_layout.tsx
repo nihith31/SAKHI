@@ -2,23 +2,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, Tabs } from 'expo-router';
 import { Platform, Pressable } from 'react-native';
 
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { useTheme } from '../../services/themeContext';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textLight,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textLight,
         tabBarStyle: {
-          backgroundColor: Colors.backgroundDark,
-          borderTopColor: Colors.border,
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.tabBarBorder,
           elevation: 8,
-          shadowColor: Colors.shadow,
+          shadowColor: colors.shadow,
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.05,
           shadowRadius: 5,
@@ -74,11 +72,11 @@ export default function TabLayout() {
           title: 'Profile',
           headerShown: true,
           headerStyle: {
-            backgroundColor: Colors.background,
+            backgroundColor: colors.background,
             elevation: 0, // remove shadow on Android
             shadowOpacity: 0, // remove shadow on iOS
           },
-          headerTintColor: Colors.textDark,
+          headerTintColor: colors.textDark,
           headerTitleStyle: {
             fontWeight: 'bold',
           },

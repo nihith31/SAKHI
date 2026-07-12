@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, ScrollView, TextInput, TouchableOpacity, Activi
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../services/themeContext';
 import { supabase } from '../../services/supabase';
 import axios from 'axios';
 
@@ -11,6 +11,9 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function TrackerScreen() {
   const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
+
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'symptoms' | 'cycle' | 'weight' | 'trends'>('symptoms');
 
@@ -141,7 +144,7 @@ export default function TrackerScreen() {
   };
 
   return (
-    <LinearGradient colors={Colors.canvasGradient as any} style={styles.container}>
+    <LinearGradient colors={colors.canvasGradient} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('SymptomTrackerTitle', 'Sakhi Health Tracker 🌸')}</Text>
         <Text style={styles.subtitle}>{t('SymptomTrackerSubtitle', 'Track daily parameters and analyze trends')}</Text>
@@ -153,7 +156,6 @@ export default function TrackerScreen() {
           ⚠️ {t('persistent_disclaimer_medical')}
         </Text>
       </View>
-
 
       <View style={styles.tabContainer}>
         {(['symptoms', 'cycle', 'weight', 'trends'] as const).map((tab) => (
@@ -229,21 +231,21 @@ export default function TrackerScreen() {
             <View style={styles.checkboxContainer}>
               <Pressable style={styles.checkboxRow} onPress={() => setAcne(!acne)}>
                 <View style={[styles.checkbox, acne && styles.checkboxChecked]}>
-                  {acne && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                  {acne && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
                 </View>
                 <Text style={styles.checkboxLabel}>{t('Acne', 'Acne / Breakouts')}</Text>
               </Pressable>
 
               <Pressable style={styles.checkboxRow} onPress={() => setHairLoss(!hairLoss)}>
                 <View style={[styles.checkbox, hairLoss && styles.checkboxChecked]}>
-                  {hairLoss && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                  {hairLoss && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
                 </View>
                 <Text style={styles.checkboxLabel}>{t('HairLoss', 'Excessive Hair Loss')}</Text>
               </Pressable>
 
               <Pressable style={styles.checkboxRow} onPress={() => setBloating(!bloating)}>
                 <View style={[styles.checkbox, bloating && styles.checkboxChecked]}>
-                  {bloating && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                  {bloating && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
                 </View>
                 <Text style={styles.checkboxLabel}>{t('Bloating', 'Bloating / Indigestion')}</Text>
               </Pressable>
@@ -256,14 +258,14 @@ export default function TrackerScreen() {
                 value={notes}
                 onChangeText={setNotes}
                 placeholder={t('NotesPlaceholder', 'Write down details about your diet, cramps, etc.')}
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 multiline
                 numberOfLines={4}
               />
             </View>
 
             <TouchableOpacity style={styles.submitButton} onPress={handleSaveSymptoms} disabled={loading}>
-              {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitButtonText}>{t('SaveLog', 'Save Log')}</Text>}
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>{t('SaveLog', 'Save Log')}</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -279,7 +281,7 @@ export default function TrackerScreen() {
                 value={periodStart}
                 onChangeText={setPeriodStart}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
               />
             </View>
 
@@ -290,7 +292,7 @@ export default function TrackerScreen() {
                 value={periodEnd}
                 onChangeText={setPeriodEnd}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
               />
             </View>
 
@@ -320,14 +322,14 @@ export default function TrackerScreen() {
                 value={cycleNotes}
                 onChangeText={setCycleNotes}
                 placeholder={t('CycleNotesPlaceholder', 'Cramping intensity, fatigue level, etc.')}
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 multiline
                 numberOfLines={3}
               />
             </View>
 
             <TouchableOpacity style={styles.submitButton} onPress={handleSaveCycle} disabled={loading}>
-              {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitButtonText}>{t('LogPeriod', 'Log Period')}</Text>}
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>{t('LogPeriod', 'Log Period')}</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -343,13 +345,13 @@ export default function TrackerScreen() {
                 value={weight}
                 onChangeText={setWeight}
                 placeholder="00.0"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
                 keyboardType="numeric"
               />
             </View>
 
             <TouchableOpacity style={styles.submitButton} onPress={handleSaveWeight} disabled={loading}>
-              {loading ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitButtonText}>{t('SaveWeight', 'Save Weight')}</Text>}
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>{t('SaveWeight', 'Save Weight')}</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -367,8 +369,8 @@ export default function TrackerScreen() {
               </View>
             ) : null}
 
-            <TouchableOpacity style={[styles.submitButton, { backgroundColor: Colors.secondary }]} onPress={handleGenerateAnalysis} disabled={analyzing}>
-              {analyzing ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.submitButtonText}>{t('GenerateTrends', 'Analyze My Trends 📊')}</Text>}
+            <TouchableOpacity style={[styles.submitButton, { backgroundColor: colors.secondary }]} onPress={handleGenerateAnalysis} disabled={analyzing}>
+              {analyzing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>{t('GenerateTrends', 'Analyze My Trends 📊')}</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -377,7 +379,7 @@ export default function TrackerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -389,11 +391,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: colors.textDark,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     marginTop: 4,
   },
   tabContainer: {
@@ -409,41 +411,41 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTabButton: {
-    borderBottomColor: Colors.primary,
+    borderBottomColor: colors.primary,
   },
   tabButtonText: {
     fontSize: 14,
-    color: Colors.textLight,
+    color: colors.textLight,
     fontWeight: '600',
   },
   activeTabButtonText: {
-    color: Colors.primary,
+    color: colors.primary,
   },
   scrollContent: {
     padding: 20,
     paddingBottom: 100,
   },
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
-    shadowColor: Colors.shadow,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.cardBorder,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: colors.textDark,
     marginBottom: 15,
   },
   cardDescription: {
     fontSize: 14,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     marginBottom: 20,
     lineHeight: 20,
   },
@@ -453,7 +455,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textDark,
+    color: colors.textDark,
     marginBottom: 8,
   },
   ratingRow: {
@@ -465,30 +467,30 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   ratingBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   ratingBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textMedium,
+    color: colors.textMedium,
   },
   ratingBtnTextActive: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   checkboxContainer: {
     marginBottom: 20,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     padding: 15,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -500,36 +502,36 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   checkboxLabel: {
     fontSize: 15,
-    color: Colors.textDark,
+    color: colors.textDark,
   },
   input: {
     height: 48,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 15,
     fontSize: 15,
-    color: Colors.textDark,
-    backgroundColor: Colors.background,
+    color: colors.textDark,
+    backgroundColor: colors.inputBackground,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 10,
     padding: 15,
     fontSize: 15,
-    color: Colors.textDark,
-    backgroundColor: Colors.background,
+    color: colors.textDark,
+    backgroundColor: colors.inputBackground,
     height: 100,
     textAlignVertical: 'top',
   },
@@ -543,25 +545,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 8,
     marginHorizontal: 4,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   flowBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   flowBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textMedium,
+    color: colors.textMedium,
   },
   flowBtnTextActive: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   submitButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     height: 48,
     borderRadius: 12,
     justifyContent: 'center',
@@ -569,27 +571,27 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   submitButtonText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
   analysisContainer: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     padding: 15,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     marginBottom: 20,
   },
   analysisText: {
     fontSize: 15,
-    color: Colors.textDark,
+    color: colors.textDark,
     lineHeight: 22,
   },
   disclaimerBanner: {
-    backgroundColor: '#FFF2F2',
+    backgroundColor: isDark ? '#2D1B1E' : '#FFF2F2',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: colors.border,
     paddingVertical: 8,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -597,10 +599,9 @@ const styles = StyleSheet.create({
   },
   disclaimerBannerText: {
     fontSize: 11,
-    color: '#422D30',
+    color: isDark ? '#F5C6C8' : '#422D30',
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 15,
   },
 });
-

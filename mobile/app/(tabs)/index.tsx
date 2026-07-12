@@ -1,15 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../services/themeContext';
 import { supabase } from '../../services/supabase';
 import { useRouter } from 'expo-router';
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { colors } = useTheme();
   const [userProfile, setUserProfile] = useState<any>(null);
+
+  // ─── Micro-animation: Fade-in on mount ─────────────────────────────────
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   useEffect(() => {
     fetchUserProfile();
@@ -59,20 +79,20 @@ export default function DashboardScreen() {
     'Magnesium deficiency is linked to insulin resistance. Magnesium-rich foods include spinach, pumpkin seeds, almonds, and dark chocolate.',
     'Avoiding ultra-processed foods and sugary beverages for just 2 weeks can measurably improve your fasting insulin levels.',
     'Yoga poses like Supta Baddha Konasana (reclining bound angle) and Viparita Karani (legs up the wall) are specifically studied for PCOS symptom relief.',
-    'Low-GI eating doesn’t mean eating less — it means eating smarter. Pair every carbohydrate with protein or fat to blunt the glucose spike.',
+    'Low-GI eating doesn't mean eating less — it means eating smarter. Pair every carbohydrate with protein or fat to blunt the glucose spike.',
     'PCOS increases risk of anxiety and depression. Prioritising mental health is not optional — it is as important as diet and exercise.',
     'Cinnamon (1–2 g/day) has been shown in small trials to improve menstrual regularity and insulin sensitivity in women with PCOS.',
     'Intermittent fasting can worsen hormonal disruption in some women with PCOS. Focus on consistent meal timing rather than prolonged fasting windows.',
   ];
 
   const GENERAL_TIPS = [
-    'Tracking your symptoms daily — energy, mood, sleep, cycle — helps the AI detect patterns that take months to surface in a doctor’s visit.',
+    'Tracking your symptoms daily — energy, mood, sleep, cycle — helps the AI detect patterns that take months to surface in a doctor's visit.',
     'Drinking water first thing in the morning kick-starts metabolism and flushes overnight waste products before you eat anything.',
     'A 10-minute morning sunlight exposure within the first hour of waking regulates your circadian rhythm and improves daytime energy.',
     'Eating slowly and chewing well improves nutrient absorption and gives your satiety hormones time to signal fullness before overeating.',
-    'Regular movement doesn’t require a gym — 7,000–8,000 steps a day reduces cardiovascular risk as effectively as structured exercise.',
+    'Regular movement doesn't require a gym — 7,000–8,000 steps a day reduces cardiovascular risk as effectively as structured exercise.',
     'Zinc supports immune function and hormone production. Rich sources include chickpeas, lentils, pumpkin seeds, and cashews.',
-    'Journalling for 5 minutes before bed — things you’re grateful for — measurably reduces cortisol and improves sleep quality.',
+    'Journalling for 5 minutes before bed — things you're grateful for — measurably reduces cortisol and improves sleep quality.',
     'The gut microbiome directly influences oestrogen metabolism. Eating diverse fibre sources (30+ plant foods a week) supports hormonal health.',
     'Iron deficiency is the most common nutritional deficiency in women. Pair iron-rich foods with vitamin C to significantly improve absorption.',
     'Social connection is a genuine health intervention. Loneliness raises inflammatory markers as much as smoking 15 cigarettes a day.',
@@ -85,7 +105,7 @@ export default function DashboardScreen() {
     'Chronic dehydration mimics hunger. Drinking a glass of water before eating often reduces unnecessary snacking.',
     'Probiotic-rich foods like curd, buttermilk, and kanji support gut health, which is closely tied to mood and immune function.',
     'Regular health check-ups — even when you feel fine — are the most evidence-based form of preventive care available.',
-    'Self-compassion has measurable health benefits. Treating yourself with the same kindness you’d offer a friend reduces chronic stress hormones.',
+    'Self-compassion has measurable health benefits. Treating yourself with the same kindness you'd offer a friend reduces chronic stress hormones.',
   ];
 
   const getDailyTip = (): string => {
@@ -99,71 +119,73 @@ export default function DashboardScreen() {
   };
 
   return (
-    <LinearGradient colors={Colors.canvasGradient} style={styles.container}>
+    <LinearGradient colors={colors.canvasGradient} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Welcome Section */}
-        <View style={styles.header}>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.userName}>{userProfile?.display_name || t('Friend', 'Friend')} 🌸</Text>
-        </View>
-
-        {/* AI Chatbot Hero Card */}
-        <TouchableOpacity style={styles.heroCard} onPress={() => router.push('/chat')}>
-          <LinearGradient
-            colors={[Colors.primary, Colors.primaryDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-            <View style={styles.heroTextContainer}>
-              <Text style={styles.heroTitle}>{t('ChatWithSakhi', 'Chat with Sakhi 💬')}</Text>
-              <Text style={styles.heroSubtitle}>
-                {t('ChatHeroDesc', 'Your empathetic AI companion for PCOS nutrition, tracking, and medical guidance.')}
-              </Text>
-            </View>
-            <View style={styles.chatButton}>
-              <Text style={styles.chatButtonText}>{t('AskNow', 'Ask Now')}</Text>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* Feature Grid */}
-        <Text style={styles.sectionTitle}>{t('QuickActions', 'Quick Actions')}</Text>
-        <View style={styles.grid}>
-          <TouchableOpacity style={styles.gridCard} onPress={() => router.push('/(tabs)/tracker')}>
-            <View style={[styles.iconCircle, { backgroundColor: Colors.primaryLight }]}>
-              <Text style={styles.iconText}>📊</Text>
-            </View>
-            <Text style={styles.gridCardTitle}>{t('LogSymptoms', 'Symptom Log')}</Text>
-            <Text style={styles.gridCardDesc}>{t('TrackerDesc', 'Log daily energy, mood, and cycle')}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.gridCard} onPress={() => router.push('/(tabs)/nutrition')}>
-            <View style={[styles.iconCircle, { backgroundColor: Colors.secondaryLight }]}>
-              <Text style={styles.iconText}>🍛</Text>
-            </View>
-            <Text style={styles.gridCardTitle}>{t('MealPlanner', 'Meal Planner')}</Text>
-            <Text style={styles.gridCardDesc}>{t('PlannerDesc', 'PCOS-friendly regional diet menus')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Lab Reports Banner */}
-        <TouchableOpacity style={styles.labReportBanner} onPress={() => router.push('/lab-report')}>
-          <View style={styles.labReportBannerContent}>
-            <Text style={styles.labReportBannerIcon}>🧪</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.labReportBannerTitle}>{t('LabReportsBanner', 'Analyze Lab Reports')}</Text>
-              <Text style={styles.labReportBannerDesc}>{t('LabReportsBannerDesc', 'Upload blood test reports — Sakhi AI explains your hormone levels')}</Text>
-            </View>
-            <Text style={styles.labReportBannerArrow}>→</Text>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          {/* Welcome Section */}
+          <View style={styles.header}>
+            <Text style={[styles.greeting, { color: colors.textMedium }]}>{getGreeting()}</Text>
+            <Text style={[styles.userName, { color: colors.textDark }]}>{userProfile?.display_name || t('Friend', 'Friend')} 🌸</Text>
           </View>
-        </TouchableOpacity>
 
-        {/* Wellness Tip of the Day */}
-        <View style={styles.tipCard}>
-          <Text style={styles.tipTitle}>💡 {t('DailyInsight', 'Daily Insight')}</Text>
-          <Text style={styles.tipText}>{getDailyTip()}</Text>
-        </View>
+          {/* AI Chatbot Hero Card */}
+          <TouchableOpacity style={[styles.heroCard, { shadowColor: colors.shadow }]} onPress={() => router.push('/chat')}>
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroGradient}
+            >
+              <View style={styles.heroTextContainer}>
+                <Text style={styles.heroTitle}>{t('ChatWithSakhi', 'Chat with Sakhi 💬')}</Text>
+                <Text style={styles.heroSubtitle}>
+                  {t('ChatHeroDesc', 'Your empathetic AI companion for PCOS nutrition, tracking, and medical guidance.')}
+                </Text>
+              </View>
+              <View style={[styles.chatButton, { backgroundColor: colors.white }]}>
+                <Text style={[styles.chatButtonText, { color: colors.primary }]}>{t('AskNow', 'Ask Now')}</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Feature Grid */}
+          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{t('QuickActions', 'Quick Actions')}</Text>
+          <View style={styles.grid}>
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, shadowColor: colors.shadow }]} onPress={() => router.push('/(tabs)/tracker')}>
+              <View style={[styles.iconCircle, { backgroundColor: colors.primaryLight }]}>
+                <Text style={styles.iconText}>📊</Text>
+              </View>
+              <Text style={[styles.gridCardTitle, { color: colors.textDark }]}>{t('LogSymptoms', 'Symptom Log')}</Text>
+              <Text style={[styles.gridCardDesc, { color: colors.textMedium }]}>{t('TrackerDesc', 'Log daily energy, mood, and cycle')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, shadowColor: colors.shadow }]} onPress={() => router.push('/(tabs)/nutrition')}>
+              <View style={[styles.iconCircle, { backgroundColor: colors.secondaryLight }]}>
+                <Text style={styles.iconText}>🍛</Text>
+              </View>
+              <Text style={[styles.gridCardTitle, { color: colors.textDark }]}>{t('MealPlanner', 'Meal Planner')}</Text>
+              <Text style={[styles.gridCardDesc, { color: colors.textMedium }]}>{t('PlannerDesc', 'PCOS-friendly regional diet menus')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Lab Reports Banner */}
+          <TouchableOpacity style={[styles.labReportBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder, shadowColor: colors.shadow }]} onPress={() => router.push('/lab-report')}>
+            <View style={styles.labReportBannerContent}>
+              <Text style={styles.labReportBannerIcon}>🧪</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.labReportBannerTitle, { color: colors.textDark }]}>{t('LabReportsBanner', 'Analyze Lab Reports')}</Text>
+                <Text style={[styles.labReportBannerDesc, { color: colors.textMedium }]}>{t('LabReportsBannerDesc', 'Upload blood test reports — Sakhi AI explains your hormone levels')}</Text>
+              </View>
+              <Text style={[styles.labReportBannerArrow, { color: colors.primary }]}>→</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Wellness Tip of the Day */}
+          <View style={[styles.tipCard, { backgroundColor: colors.card, borderLeftColor: colors.primary, shadowColor: colors.shadow }]}>
+            <Text style={[styles.tipTitle, { color: colors.textDark }]}>💡 {t('DailyInsight', 'Daily Insight')}</Text>
+            <Text style={[styles.tipText, { color: colors.textMedium }]}>{getDailyTip()}</Text>
+          </View>
+        </Animated.View>
       </ScrollView>
     </LinearGradient>
   );
@@ -183,19 +205,16 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 16,
-    color: Colors.textMedium,
   },
   userName: {
     fontSize: 26,
     fontWeight: 'bold',
-    color: Colors.textDark,
     marginTop: 4,
   },
   heroCard: {
     borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 25,
-    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
@@ -214,7 +233,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.white,
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   heroSubtitle: {
@@ -223,20 +242,17 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   chatButton: {
-    backgroundColor: Colors.white,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
   },
   chatButtonText: {
-    color: Colors.primary,
     fontSize: 14,
     fontWeight: 'bold',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.textDark,
     marginBottom: 15,
   },
   grid: {
@@ -246,12 +262,9 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     width: '48%',
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -271,21 +284,16 @@ const styles = StyleSheet.create({
   gridCardTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: Colors.textDark,
     marginBottom: 6,
   },
   gridCardDesc: {
     fontSize: 12,
-    color: Colors.textMedium,
     lineHeight: 16,
   },
   tipCard: {
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 20,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
-    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -294,22 +302,17 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: Colors.textDark,
     marginBottom: 6,
   },
   tipText: {
     fontSize: 14,
-    color: Colors.textMedium,
     lineHeight: 20,
   },
   labReportBanner: {
-    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 18,
     marginBottom: 25,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -327,17 +330,14 @@ const styles = StyleSheet.create({
   labReportBannerTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: Colors.textDark,
     marginBottom: 4,
   },
   labReportBannerDesc: {
     fontSize: 12,
-    color: Colors.textMedium,
     lineHeight: 16,
   },
   labReportBannerArrow: {
     fontSize: 20,
-    color: Colors.primary,
     fontWeight: 'bold',
     marginLeft: 10,
   },

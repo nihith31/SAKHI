@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, Keyboard
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../services/themeContext';
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
 
@@ -28,6 +28,9 @@ const SUGGESTIONS = [
 
 export default function ChatScreen() {
   const { t, i18n } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -201,52 +204,42 @@ export default function ChatScreen() {
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
-    const userMsg: Message = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: text,
+      content: text.trim(),
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setLoading(true);
 
+    // Scroll to bottom
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
     try {
-      // Structure previous conversation logs
-      const chatHistory = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-
-      const payload = {
-        message: text,
-        chat_history: chatHistory,
-        language: (i18n.language || 'en').split('-')[0],
-        user_profile: {
-          display_name: userProfile?.display_name || 'Friend',
-          age: userProfile?.age || 24,
-          pcos_diagnosed: userProfile?.pcos_diagnosed || false,
-          goals: userProfile?.goals || [],
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await axios.post(
+        `${API_URL}/api/chat`,
+        { message: text.trim() },
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token || ''}`,
+            'Content-Type': 'application/json',
+          },
         }
-      };
+      );
 
-      const response = await axios.post(`${API_URL}/api/chat`, payload);
-      
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.data.response,
-        agent_used: response.data.routed_agent
-      };
-
-      setMessages(prev => [...prev, botMsg]);
-
-      // Save messages in Supabase background
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('chat_messages').insert([
-          { user_id: user.id, role: 'user', content: text, language: i18n.language },
-          { user_id: user.id, role: 'assistant', content: response.data.response, language: i18n.language, agent_used: response.data.routed_agent }
+      if (response.data && response.data.reply) {
+        const reply = response.data.reply;
+        setMessages(prev => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: reply.content,
+            agent_used: reply.agent_used,
+          },
         ]);
       }
 
@@ -289,7 +282,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={Colors.canvasGradient as any} style={styles.gradientContainer}>
+      <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
         {/* Header Panel */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{t('chat.title')}</Text>
@@ -302,7 +295,6 @@ export default function ChatScreen() {
             ⚠️ {t('chat.persistent_disclaimer', 'AI Companion: For educational purposes only. Verify critical medical advice with a healthcare provider.')}
           </Text>
         </View>
-
 
         {/* Message Feed */}
         <FlatList
@@ -337,7 +329,7 @@ export default function ChatScreen() {
         {/* Typing Loader */}
         {loading && (
           <View style={styles.loaderContainer}>
-            <ActivityIndicator size="small" color={Colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
             <Text style={styles.loaderText}>Sakhi is reflecting...</Text>
           </View>
         )}
@@ -351,7 +343,7 @@ export default function ChatScreen() {
             <TextInput
               style={styles.textInput}
               placeholder={t('chat.placeholder')}
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={inputText}
               onChangeText={setInputText}
               multiline
@@ -367,7 +359,7 @@ export default function ChatScreen() {
               accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
             >
               {isTranscribing
-                ? <ActivityIndicator size="small" color={Colors.primary} />
+                ? <ActivityIndicator size="small" color={colors.primary} />
                 : <Text style={styles.micButtonText}>{isRecording ? '⏹' : '🎙️'}</Text>
               }
             </TouchableOpacity>
@@ -385,30 +377,30 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF5F2',
+    backgroundColor: colors.background,
   },
   gradientContainer: {
     flex: 1,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.tabBar,
     paddingVertical: 16,
     paddingHorizontal: 20,
     alignItems: 'center',
     borderBottomWidth: 1.5,
-    borderBottomColor: Colors.border,
+    borderBottomColor: colors.border,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: colors.primary,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     marginTop: 2,
   },
   chatFeed: {
@@ -433,13 +425,13 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
   },
   userBubble: {
-    backgroundColor: Colors.backgroundDark,
+    backgroundColor: isDark ? '#2D2027' : colors.backgroundDark,
     borderBottomRightRadius: 4,
   },
   botBubble: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: colors.primary,
     borderBottomLeftRadius: 4,
   },
   messageText: {
@@ -447,11 +439,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   userText: {
-    color: Colors.textDark,
+    color: colors.textDark,
     fontWeight: '500',
   },
   botText: {
-    color: Colors.textDark,
+    color: colors.textDark,
   },
   bubbleFooter: {
     flexDirection: 'row',
@@ -461,7 +453,7 @@ const styles = StyleSheet.create({
   },
   agentTag: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.secondaryLight,
+    backgroundColor: colors.secondaryLight,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -469,19 +461,19 @@ const styles = StyleSheet.create({
   agentTagText: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: Colors.secondary,
+    color: colors.secondary,
   },
   speakButton: {
-    backgroundColor: '#F0EBF8',
+    backgroundColor: isDark ? '#2D1F2B' : '#F0EBF8',
     borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
   },
   speakButtonActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
   },
   speakButtonIcon: {
     fontSize: 14,
@@ -495,12 +487,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 15,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
@@ -510,9 +502,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   suggestionChip: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -522,7 +514,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 13,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     fontWeight: '600',
   },
   loaderContainer: {
@@ -533,32 +525,32 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     fontSize: 12,
-    color: Colors.textLight,
+    color: colors.textLight,
     marginLeft: 8,
     fontStyle: 'italic',
   },
   inputDock: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.tabBar,
     padding: 12,
     borderTopWidth: 1.5,
-    borderTopColor: Colors.border,
+    borderTopColor: colors.border,
     alignItems: 'center',
   },
   textInput: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.inputBackground,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginRight: 10,
-    color: Colors.textDark,
+    color: colors.textDark,
     maxHeight: 100,
   },
   sendButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -571,24 +563,24 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
   micButtonActive: {
-    backgroundColor: '#FFE5E5',
+    backgroundColor: isDark ? '#5A2A2E' : '#FFE5E5',
     borderColor: '#E53E3E',
   },
   micButtonText: {
     fontSize: 18,
   },
   disclaimerBanner: {
-    backgroundColor: '#FFF2F2', // Soft red tint for visibility
+    backgroundColor: isDark ? '#2D1B1E' : '#FFF2F2',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: colors.border,
     paddingVertical: 8,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -596,10 +588,9 @@ const styles = StyleSheet.create({
   },
   disclaimerBannerText: {
     fontSize: 11,
-    color: '#422D30', // Deep Cocoa Plum
+    color: isDark ? '#F5C6C8' : '#422D30',
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 15,
   },
 });
-

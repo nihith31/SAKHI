@@ -13,6 +13,7 @@ import {
   savePushTokenToProfile,
   scheduleDailySymptomReminder,
 } from '../services/notifications';
+import { ThemeProvider as SakhiThemeProvider } from '../services/themeContext';
 
 import { useColorScheme } from '@/components/useColorScheme';
 
@@ -113,7 +114,11 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav session={session} authReady={authReady} />;
+  return (
+    <SakhiThemeProvider>
+      <RootLayoutNav session={session} authReady={authReady} />
+    </SakhiThemeProvider>
+  );
 }
 
 // ─── Navigation Tree ─────────────────────────────────────────────────────────

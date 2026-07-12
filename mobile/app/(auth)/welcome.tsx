@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../services/themeContext';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { i18n } = useTranslation();
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
 
   const selectLanguage = async (lang: 'en' | 'hi' | 'te') => {
     await AsyncStorage.setItem('user-language', lang);
@@ -18,7 +20,7 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={Colors.canvasGradient as any} style={styles.gradient}>
+      <LinearGradient colors={colors.canvasGradient} style={styles.gradient}>
         <View style={styles.brandContainer}>
           <Text style={styles.logoText}>Sakhi 🌸</Text>
           <Text style={styles.tagline}>Your PCOS Companion & Friend</Text>
@@ -44,10 +46,10 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   gradient: {
     flex: 1,
@@ -61,21 +63,21 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: colors.primary,
     letterSpacing: 1,
   },
   tagline: {
     fontSize: 16,
-    color: Colors.textMedium,
+    color: colors.textMedium,
     marginTop: 8,
     fontStyle: 'italic',
   },
   langSelectorBox: {
     width: '100%',
-    backgroundColor: Colors.white,
+    backgroundColor: colors.card,
     borderRadius: 24,
     padding: 24,
-    shadowColor: Colors.shadow,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 16,
@@ -84,16 +86,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textDark,
+    color: colors.textDark,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
   },
   langButton: {
     width: '100%',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -102,6 +104,6 @@ const styles = StyleSheet.create({
   langText: {
     fontSize: 17,
     fontWeight: '600',
-    color: Colors.primary,
+    color: colors.primary,
   },
 });
