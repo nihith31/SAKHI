@@ -244,7 +244,7 @@ export default function ChatScreen() {
       }
 
     } catch (error: any) {
-      Alert.alert('Chat Error', 'Unable to reach Sakhi backend agent. Make sure the API server and local Ollama are running.');
+      Alert.alert('Chat Error', 'Unable to reach Sakhi backend agent. Make sure the API server is running and your device is connected to the same network.');
     } finally {
       setLoading(false);
       // Scroll to bottom
