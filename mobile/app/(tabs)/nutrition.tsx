@@ -451,7 +451,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontWeight: 'bold',
   },
   exportButton: {
-    backgroundColor: '#059669',
+    backgroundColor: colors.primary,
     height: 44,
     borderRadius: 12,
     justifyContent: 'center',

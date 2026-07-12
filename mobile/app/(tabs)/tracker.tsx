@@ -369,7 +369,7 @@ export default function TrackerScreen() {
               </View>
             ) : null}
 
-            <TouchableOpacity style={[styles.submitButton, { backgroundColor: colors.secondary }]} onPress={handleGenerateAnalysis} disabled={analyzing}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleGenerateAnalysis} disabled={analyzing}>
               {analyzing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>{t('GenerateTrends', 'Analyze My Trends 📊')}</Text>}
             </TouchableOpacity>
           </View>
