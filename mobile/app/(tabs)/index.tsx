@@ -79,20 +79,20 @@ export default function DashboardScreen() {
     'Magnesium deficiency is linked to insulin resistance. Magnesium-rich foods include spinach, pumpkin seeds, almonds, and dark chocolate.',
     'Avoiding ultra-processed foods and sugary beverages for just 2 weeks can measurably improve your fasting insulin levels.',
     'Yoga poses like Supta Baddha Konasana (reclining bound angle) and Viparita Karani (legs up the wall) are specifically studied for PCOS symptom relief.',
-    'Low-GI eating doesn't mean eating less — it means eating smarter. Pair every carbohydrate with protein or fat to blunt the glucose spike.',
+    'Low-GI eating doesn\'t mean eating less — it means eating smarter. Pair every carbohydrate with protein or fat to blunt the glucose spike.',
     'PCOS increases risk of anxiety and depression. Prioritising mental health is not optional — it is as important as diet and exercise.',
     'Cinnamon (1–2 g/day) has been shown in small trials to improve menstrual regularity and insulin sensitivity in women with PCOS.',
     'Intermittent fasting can worsen hormonal disruption in some women with PCOS. Focus on consistent meal timing rather than prolonged fasting windows.',
   ];
 
   const GENERAL_TIPS = [
-    'Tracking your symptoms daily — energy, mood, sleep, cycle — helps the AI detect patterns that take months to surface in a doctor's visit.',
+    'Tracking your symptoms daily — energy, mood, sleep, cycle — helps the AI detect patterns that take months to surface in a doctor\'s visit.',
     'Drinking water first thing in the morning kick-starts metabolism and flushes overnight waste products before you eat anything.',
     'A 10-minute morning sunlight exposure within the first hour of waking regulates your circadian rhythm and improves daytime energy.',
     'Eating slowly and chewing well improves nutrient absorption and gives your satiety hormones time to signal fullness before overeating.',
-    'Regular movement doesn't require a gym — 7,000–8,000 steps a day reduces cardiovascular risk as effectively as structured exercise.',
+    'Regular movement doesn\'t require a gym — 7,000–8,000 steps a day reduces cardiovascular risk as effectively as structured exercise.',
     'Zinc supports immune function and hormone production. Rich sources include chickpeas, lentils, pumpkin seeds, and cashews.',
-    'Journalling for 5 minutes before bed — things you're grateful for — measurably reduces cortisol and improves sleep quality.',
+    'Journalling for 5 minutes before bed — things you\'re grateful for — measurably reduces cortisol and improves sleep quality.',
     'The gut microbiome directly influences oestrogen metabolism. Eating diverse fibre sources (30+ plant foods a week) supports hormonal health.',
     'Iron deficiency is the most common nutritional deficiency in women. Pair iron-rich foods with vitamin C to significantly improve absorption.',
     'Social connection is a genuine health intervention. Loneliness raises inflammatory markers as much as smoking 15 cigarettes a day.',
@@ -105,7 +105,7 @@ export default function DashboardScreen() {
     'Chronic dehydration mimics hunger. Drinking a glass of water before eating often reduces unnecessary snacking.',
     'Probiotic-rich foods like curd, buttermilk, and kanji support gut health, which is closely tied to mood and immune function.',
     'Regular health check-ups — even when you feel fine — are the most evidence-based form of preventive care available.',
-    'Self-compassion has measurable health benefits. Treating yourself with the same kindness you'd offer a friend reduces chronic stress hormones.',
+    'Self-compassion has measurable health benefits. Treating yourself with the same kindness you\'d offer a friend reduces chronic stress hormones.',
   ];
 
   const getDailyTip = (): string => {
