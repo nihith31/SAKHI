@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Keyboard } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../services/themeContext';
@@ -30,6 +30,7 @@ export default function ChatScreen() {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
+  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -299,7 +300,7 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingBottom: keyboardHeight }]} edges={['top', 'left', 'right']}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: keyboardHeight || insets.bottom }]}>
       <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
         {/* Header Panel */}
         <View style={styles.header}>
@@ -387,7 +388,7 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </LinearGradient>
-    </SafeAreaView>
+    </View>
   );
 }
 
