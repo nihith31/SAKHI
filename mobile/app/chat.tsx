@@ -41,25 +41,6 @@ export default function ChatScreen() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const flatListRef = useRef<FlatList>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSubscription = Keyboard.addListener(showEvent, (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
 
   // Strips markdown symbols, emojis and URLs before passing text to TTS
   const cleanForSpeech = (text: string): string => {
@@ -300,10 +281,15 @@ export default function ChatScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: keyboardHeight || insets.bottom }]}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
-        {/* Header Panel */}
-        <View style={styles.header}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          {/* Header Panel */}
+          <View style={styles.header}>
           <Text style={styles.headerTitle}>{t('chat.title')}</Text>
           <Text style={styles.headerSubtitle}>Medical-Aware PCOS Companion</Text>
         </View>
@@ -386,9 +372,9 @@ export default function ChatScreen() {
           >
             <Text style={styles.sendButtonText}>{t('chat.send')}</Text>
           </TouchableOpacity>
-        </View>
+        </KeyboardAvoidingView>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 
