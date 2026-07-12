@@ -11,7 +11,8 @@ class Orchestrator:
             "- 'nutrition' (for diet queries, food plans, ingredients, or cooking tips)\n"
             "- 'fitness' (for exercise, yoga, workout plans, or physical activities)\n"
             "- 'symptom' (for period schedules, cramps, logging cycles, acne, weight concerns)\n"
-            "- 'lab' (for hormone levels, blood tests, or lab report entries)\n\n"
+            "- 'lab' (for hormone levels, blood tests, or lab report entries)\n"
+            "- 'unrelated' (for completely non-PCOS, non-health, or general questions like math '1+1', coding, politics, general history, general knowledge, etc.)\n\n"
             "Rule: Return ONLY the exact classification word (lowercase), with no extra text or explanations."
         )
 
@@ -23,7 +24,7 @@ class Orchestrator:
         decision = decision.strip().lower()
         
         # Guard sanitization to guarantee valid routing
-        for agent in ['companion', 'nutrition', 'fitness', 'symptom', 'lab']:
+        for agent in ['companion', 'nutrition', 'fitness', 'symptom', 'lab', 'unrelated']:
             if agent in decision:
                 return agent
         return 'companion'
