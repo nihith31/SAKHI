@@ -284,9 +284,9 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
           {/* Header Panel */}
           <View style={styles.header}>
