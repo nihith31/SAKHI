@@ -280,12 +280,12 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 25}
+    >
+      <SafeAreaView style={styles.container}>
         <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
           {/* Header Panel */}
           <View style={styles.header}>
@@ -372,8 +372,8 @@ export default function ChatScreen() {
             </TouchableOpacity>
           </View>
         </LinearGradient>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
