@@ -151,5 +151,10 @@
   "Normal": "సాధారణం ✅",
   "MildlyAbnormal": "స్వల్పంగా అసాధారణం ⚠️",
   "SignificantlyAbnormal": "అసాధారణం 🚨",
-  "Back": "వెనక్కి"
+  "Back": "వెనక్కి",
+  "ThemeTitle": "రూపము (అピアరెన్స్)",
+  "ThemeSubtitle": "లైట్ లేదా డార్క్ మోడ్ థీమ్ శైలిని ఎంచుకోండి",
+  "ThemeLight": "లైట్ మోడ్",
+  "ThemeDark": "డార్క్ మోడ్",
+  "DownloadPDFPlan": "పీడీఎఫ్ ప్లాన్ డౌన్‌లోడ్ చేయండి 📥"
 }

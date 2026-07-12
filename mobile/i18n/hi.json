@@ -151,5 +151,10 @@
   "Normal": "सामान्य ✅",
   "MildlyAbnormal": "थोड़ा असामान्य ⚠️",
   "SignificantlyAbnormal": "असामान्य 🚨",
-  "Back": "वापस"
+  "Back": "वापस",
+  "ThemeTitle": "रंग-रूप (अपीयरेंस)",
+  "ThemeSubtitle": "लाइट या डार्क मोड थीम शैली चुनें",
+  "ThemeLight": "लाइट मोड",
+  "ThemeDark": "डार्क मोड",
+  "DownloadPDFPlan": "पीडीएफ प्लान डाउनलोड करें 📥"
 }

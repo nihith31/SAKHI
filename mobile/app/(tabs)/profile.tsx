@@ -233,9 +233,9 @@ export default function ProfileScreen() {
 
           {/* ── Theme Switcher ────────────────────────────────── */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.textDark }]}>🌓 Theme / थीम / థీమ్</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textDark }]}>🌓 {t('ThemeTitle', 'Appearance')}</Text>
             <Text style={[styles.sectionSubtitle, { color: colors.textLight }]}>
-              Choose light or dark mode styling
+              {t('ThemeSubtitle', 'Choose light or dark mode styling')}
             </Text>
             <View style={styles.languageGrid}>
               <TouchableOpacity
@@ -249,7 +249,7 @@ export default function ProfileScreen() {
               >
                 <Text style={{ fontSize: 24, marginBottom: 4 }}>☀️</Text>
                 <Text style={[styles.langNative, { color: colors.textDark }, !isDark && { color: colors.primaryDark }]}>
-                  Light
+                  {t('ThemeLight', 'Light')}
                 </Text>
                 {!isDark && (
                   <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]}>
@@ -269,7 +269,7 @@ export default function ProfileScreen() {
               >
                 <Text style={{ fontSize: 24, marginBottom: 4 }}>🌙</Text>
                 <Text style={[styles.langNative, { color: colors.textDark }, isDark && { color: colors.primaryDark }]}>
-                  Dark
+                  {t('ThemeDark', 'Dark')}
                 </Text>
                 {isDark && (
                   <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]}>

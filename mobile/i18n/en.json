@@ -151,5 +151,10 @@
   "Normal": "Normal ✅",
   "MildlyAbnormal": "Mildly Abnormal ⚠️",
   "SignificantlyAbnormal": "Abnormal 🚨",
-  "Back": "Back"
+  "Back": "Back",
+  "ThemeTitle": "Appearance",
+  "ThemeSubtitle": "Choose light or dark mode styling",
+  "ThemeLight": "Light",
+  "ThemeDark": "Dark",
+  "DownloadPDFPlan": "Download PDF Plan 📥"
 }

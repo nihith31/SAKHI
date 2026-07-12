@@ -267,7 +267,7 @@ export default function NutritionScreen() {
             >
               {isExporting 
                 ? <ActivityIndicator color="#FFFFFF" />
-                : <Text style={styles.exportButtonText}>📥 Download PDF Plan</Text>
+                : <Text style={styles.exportButtonText}>{t('DownloadPDFPlan', 'Download PDF Plan 📥')}</Text>
               }
             </TouchableOpacity>
           )}
