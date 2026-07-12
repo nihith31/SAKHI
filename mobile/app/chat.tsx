@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +40,25 @@ export default function ChatScreen() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   // Strips markdown symbols, emojis and URLs before passing text to TTS
   const cleanForSpeech = (text: string): string => {
@@ -280,100 +299,95 @@ export default function ChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-      style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 25}
-    >
-      <SafeAreaView style={styles.container}>
-        <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
-          {/* Header Panel */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>{t('chat.title')}</Text>
-            <Text style={styles.headerSubtitle}>Medical-Aware PCOS Companion</Text>
-          </View>
+    <SafeAreaView style={[styles.container, { paddingBottom: keyboardHeight }]} edges={['top', 'left', 'right']}>
+      <LinearGradient colors={colors.canvasGradient} style={styles.gradientContainer}>
+        {/* Header Panel */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('chat.title')}</Text>
+          <Text style={styles.headerSubtitle}>Medical-Aware PCOS Companion</Text>
+        </View>
 
-          {/* Persistent Disclaimer Banner */}
-          <View style={styles.disclaimerBanner}>
-            <Text style={styles.disclaimerBannerText}>
-              ⚠️ {t('chat.persistent_disclaimer', 'AI Companion: For educational purposes only. Verify critical medical advice with a healthcare provider.')}
-            </Text>
-          </View>
+        {/* Persistent Disclaimer Banner */}
+        <View style={styles.disclaimerBanner}>
+          <Text style={styles.disclaimerBannerText}>
+            ⚠️ {t('chat.persistent_disclaimer', 'AI Companion: For educational purposes only. Verify critical medical advice with a healthcare provider.')}
+          </Text>
+        </View>
 
-          {/* Message Feed */}
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessageItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.chatFeed}
-            ListEmptyComponent={() => (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyTitle}>Namaste 🌸</Text>
-                <Text style={styles.emptyText}>
-                  I'm your PCOS wellness companion. Ask me anything about cycles, nutritional adjustments, or daily symptoms.
-                </Text>
-                
-                {/* Suggestion Chips */}
-                <View style={styles.suggestionsContainer}>
-                  {SUGGESTIONS.map((suggestion, idx) => (
-                    <TouchableOpacity 
-                      key={idx} 
-                      style={styles.suggestionChip}
-                      onPress={() => handleSendMessage(suggestion)}
-                    >
-                      <Text style={styles.suggestionText}>{suggestion}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+        {/* Message Feed */}
+        <FlatList
+          ref={flatListRef}
+          style={{ flex: 1 }}
+          data={messages}
+          renderItem={renderMessageItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.chatFeed}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>Namaste 🌸</Text>
+              <Text style={styles.emptyText}>
+                I'm your PCOS wellness companion. Ask me anything about cycles, nutritional adjustments, or daily symptoms.
+              </Text>
+              
+              {/* Suggestion Chips */}
+              <View style={styles.suggestionsContainer}>
+                {SUGGESTIONS.map((suggestion, idx) => (
+                  <TouchableOpacity 
+                    key={idx} 
+                    style={styles.suggestionChip}
+                    onPress={() => handleSendMessage(suggestion)}
+                  >
+                    <Text style={styles.suggestionText}>{suggestion}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            )}
-          />
-
-          {/* Typing Loader */}
-          {loading && (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={styles.loaderText}>Sakhi is reflecting...</Text>
             </View>
           )}
+        />
 
-          {/* Input Dock */}
-          <View style={styles.inputDock}>
-            <TextInput
-              style={styles.textInput}
-              placeholder={t('chat.placeholder')}
-              placeholderTextColor={colors.textLight}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-            />
-            {/* Mic button: red when recording, pulsing spinner when transcribing */}
-            <TouchableOpacity
-              style={[
-                styles.micButton,
-                isRecording && styles.micButtonActive,
-              ]}
-              onPress={handleMicPress}
-              disabled={loading || isTranscribing}
-              accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
-            >
-              {isTranscribing
-                ? <ActivityIndicator size="small" color={colors.primary} />
-                : <Text style={styles.micButtonText}>{isRecording ? '⏹' : '🎙️'}</Text>
-              }
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.sendButton}
-              onPress={() => handleSendMessage(inputText)}
-              disabled={loading}
-            >
-              <Text style={styles.sendButtonText}>{t('chat.send')}</Text>
-            </TouchableOpacity>
+        {/* Typing Loader */}
+        {loading && (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loaderText}>Sakhi is reflecting...</Text>
           </View>
-        </LinearGradient>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+        )}
+
+        {/* Input Dock */}
+        <View style={styles.inputDock}>
+          <TextInput
+            style={styles.textInput}
+            placeholder={t('chat.placeholder')}
+            placeholderTextColor={colors.textLight}
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+          />
+          {/* Mic button: red when recording, pulsing spinner when transcribing */}
+          <TouchableOpacity
+            style={[
+              styles.micButton,
+              isRecording && styles.micButtonActive,
+            ]}
+            onPress={handleMicPress}
+            disabled={loading || isTranscribing}
+            accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice input'}
+          >
+            {isTranscribing
+              ? <ActivityIndicator size="small" color={colors.primary} />
+              : <Text style={styles.micButtonText}>{isRecording ? '⏹' : '🎙️'}</Text>
+            }
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.sendButton}
+            onPress={() => handleSendMessage(inputText)}
+            disabled={loading}
+          >
+            <Text style={styles.sendButtonText}>{t('chat.send')}</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
