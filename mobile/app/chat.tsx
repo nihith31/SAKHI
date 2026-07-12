@@ -372,10 +372,11 @@ export default function ChatScreen() {
           >
             <Text style={styles.sendButtonText}>{t('chat.send')}</Text>
           </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </SafeAreaView>
-  );
+        </View>
+      </KeyboardAvoidingView>
+    </LinearGradient>
+  </SafeAreaView>
+);
 }
 
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
