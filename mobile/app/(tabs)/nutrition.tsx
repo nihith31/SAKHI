@@ -8,7 +8,7 @@ import axios from 'axios';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://sakhiai.up.railway.app';
 
 interface MealDay {
   breakfast: string;

@@ -12,7 +12,7 @@ import { supabase } from '../services/supabase';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://sakhiai.up.railway.app';
 
 interface LabReport {
   id: string;

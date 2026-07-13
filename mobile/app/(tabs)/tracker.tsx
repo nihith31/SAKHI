@@ -8,7 +8,7 @@ import { supabase } from '../../services/supabase';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://sakhiai.up.railway.app';
 const OFFLINE_QUEUE_KEY = '@sakhi_offline_queue';
 
 interface OfflineLog {

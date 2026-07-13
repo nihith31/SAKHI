@@ -17,7 +17,7 @@ interface Message {
   agent_used?: string;
 }
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://sakhiai.up.railway.app';
 
 const SUGGESTIONS = [
   "How to manage PCOS fatigue? ⚡",
