@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, FlatList
+  ActivityIndicator, Alert, FlatList, Modal, TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +34,44 @@ export default function LabReportScreen() {
   const [reports, setReports] = useState<LabReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
   const [selectedReport, setSelectedReport] = useState<LabReport | null>(null);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualReportId, setManualReportId] = useState<string | null>(null);
+  const [manualEntries, setManualEntries] = useState<Record<string, { value: string; unit: string }>>({});
+  const [savingManual, setSavingManual] = useState(false);
+
+  const VITAL_MARKERS = ['LH', 'FSH', 'AMH', 'Testosterone', 'TSH', 'Insulin'];
+
+  const getMissingMarkers = (extractedValues: Record<string, any>) => {
+    const found = Object.keys(extractedValues).map(k => k.toLowerCase());
+    return VITAL_MARKERS.filter(m => !found.includes(m.toLowerCase()));
+  };
+
+  const openManualEntryModal = (reportId: string, missing: string[]) => {
+    const entries: Record<string, { value: string; unit: string }> = {};
+    missing.forEach(m => { entries[m] = { value: '', unit: '' }; });
+    setManualEntries(entries);
+    setManualReportId(reportId);
+    setShowManualModal(true);
+  };
+
+  const handleSaveManualEntries = async () => {
+    if (!manualReportId) return;
+    const filled = Object.entries(manualEntries)
+      .filter(([_, v]) => v.value.trim())
+      .map(([hormone, v]) => ({ hormone, value: v.value, unit: v.unit || '' }));
+    if (filled.length === 0) { setShowManualModal(false); return; }
+    setSavingManual(true);
+    try {
+      const headers = await getHeaders();
+      await axios.patch(`${API_URL}/api/lab-reports/update-values/${manualReportId}`, { entries: filled }, { headers });
+      setShowManualModal(false);
+      fetchReports();
+    } catch (err) {
+      Alert.alert(t('Error', 'Error'), t('ManualSaveFailed', 'Failed to save values.'));
+    } finally {
+      setSavingManual(false);
+    }
+  };
 
   useEffect(() => {
     fetchReports();
@@ -125,6 +163,7 @@ export default function LabReportScreen() {
       case 'normal': return colors.secondary || '#8FAB96';
       case 'mildly_abnormal': return '#F5A623';
       case 'significantly_abnormal': return colors.primary || '#E67E80';
+      case 'manual_entry': return '#5B8DEF';
       default: return colors.textLight;
     }
   };
@@ -134,6 +173,7 @@ export default function LabReportScreen() {
       case 'normal': return t('Normal', 'Normal ✅');
       case 'mildly_abnormal': return t('MildlyAbnormal', 'Mildly Abnormal ⚠️');
       case 'significantly_abnormal': return t('SignificantlyAbnormal', 'Abnormal 🚨');
+      case 'manual_entry': return t('ManualEntry', 'Manual ✏️');
       default: return status;
     }
   };
@@ -195,6 +235,24 @@ export default function LabReportScreen() {
               </View>
             )}
 
+            {/* Missing Markers Verification Banner */}
+            {hasAnalysis && (() => {
+              const missing = getMissingMarkers(extractedValues);
+              if (missing.length === 0) return null;
+              return (
+                <TouchableOpacity
+                  style={[styles.findingsSection, { backgroundColor: isDark ? '#2D2A1E' : '#FFFBE6', borderWidth: 1, borderColor: '#F5A623' }]}
+                  onPress={() => openManualEntryModal(report.id, missing)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.sectionHeading, { color: '#F5A623' }]}>⚠️ {missing.length} Vital Marker{missing.length > 1 ? 's' : ''} Missing</Text>
+                  <Text style={{ fontSize: 13, color: colors.textMedium, lineHeight: 19 }}>
+                    {missing.join(', ')} — Tap here to enter values manually from your report.
+                  </Text>
+                </TouchableOpacity>
+              );
+            })()}
+
             {/* AI Summary */}
             {report.ai_analysis ? (
               <View style={styles.summarySection}>
@@ -246,6 +304,56 @@ export default function LabReportScreen() {
             >
               <Text style={styles.reanalyzeBtnText}>{t('Reanalyze', 'Re-analyze with AI 🔄')}</Text>
             </TouchableOpacity>
+
+        {/* Manual Entry Modal */}
+        <Modal visible={showManualModal} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+              <Text style={[styles.sectionHeading, { marginBottom: 12 }]}>📝 Enter Missing Values</Text>
+              <ScrollView style={{ maxHeight: 320 }}>
+                {Object.entries(manualEntries).map(([hormone, entry]) => (
+                  <View key={hormone} style={{ marginBottom: 12 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textDark, marginBottom: 4 }}>{hormone}</Text>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TextInput
+                        style={[styles.manualInput, { flex: 2, borderColor: colors.border, color: colors.textDark }]}
+                        placeholder="Value"
+                        placeholderTextColor={colors.textLight}
+                        keyboardType="decimal-pad"
+                        value={entry.value}
+                        onChangeText={(v) => setManualEntries(prev => ({ ...prev, [hormone]: { ...prev[hormone], value: v } }))}
+                      />
+                      <TextInput
+                        style={[styles.manualInput, { flex: 1, borderColor: colors.border, color: colors.textDark }]}
+                        placeholder="Unit"
+                        placeholderTextColor={colors.textLight}
+                        value={entry.unit}
+                        onChangeText={(v) => setManualEntries(prev => ({ ...prev, [hormone]: { ...prev[hormone], unit: v } }))}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                  style={[styles.reanalyzeBtn, { flex: 1, borderColor: colors.textLight }]}
+                  onPress={() => setShowManualModal(false)}
+                >
+                  <Text style={{ color: colors.textMedium, fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.generateBtn, { flex: 1, backgroundColor: colors.primary }]}
+                  onPress={handleSaveManualEntries}
+                  disabled={savingManual}
+                >
+                  {savingManual ? <ActivityIndicator color="#fff" size="small" /> : (
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
           </View>
         )}
       </TouchableOpacity>
@@ -604,5 +712,28 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  manualInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  generateBtn: {
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
 });

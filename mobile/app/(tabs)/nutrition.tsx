@@ -39,6 +39,7 @@ export default function NutritionScreen() {
   const [mealPlan, setMealPlan] = useState<PlanData | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>('monday');
   const [isExporting, setIsExporting] = useState(false);
+  const [swappingMeal, setSwappingMeal] = useState<string | null>(null);
 
   useEffect(() => {
     fetchActiveMealPlan();
@@ -65,6 +66,33 @@ export default function NutritionScreen() {
       console.log('No active plan or server offline:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSwapMeal = async (mealType: string, currentMeal: string) => {
+    setSwappingMeal(mealType);
+    try {
+      const headers = await getHeaders();
+      const res = await axios.post(`${API_URL}/api/nutrition/meal-plan/swap`, {
+        day: selectedDay,
+        meal_type: mealType,
+        region,
+        current_meal: currentMeal,
+      }, { headers });
+
+      if (res.data?.new_meal && mealPlan) {
+        const updated = { ...mealPlan };
+        const dayPlan = updated[selectedDay as keyof PlanData] as MealDay | undefined;
+        if (dayPlan) {
+          (dayPlan as any)[mealType] = res.data.new_meal;
+          setMealPlan({ ...updated });
+        }
+      }
+    } catch (err) {
+      console.error('Swap failed:', err);
+      Alert.alert(t('Error', 'Error'), t('SwapFailed', 'Failed to swap meal. Please try again.'));
+    } finally {
+      setSwappingMeal(null);
     }
   };
 
@@ -298,25 +326,29 @@ export default function NutritionScreen() {
 
               {selectedDayPlan ? (
                 <View>
-                  <View style={styles.mealSection}>
-                    <Text style={styles.mealLabel}>{t('Breakfast', 'Breakfast')}</Text>
-                    <Text style={styles.mealValue}>{selectedDayPlan.breakfast}</Text>
-                  </View>
-
-                  <View style={styles.mealSection}>
-                    <Text style={styles.mealLabel}>{t('Lunch', 'Lunch')}</Text>
-                    <Text style={styles.mealValue}>{selectedDayPlan.lunch}</Text>
-                  </View>
-
-                  <View style={styles.mealSection}>
-                    <Text style={styles.mealLabel}>{t('Snack', 'Evening Snack')}</Text>
-                    <Text style={styles.mealValue}>{selectedDayPlan.snack}</Text>
-                  </View>
-
-                  <View style={styles.mealSection}>
-                    <Text style={styles.mealLabel}>{t('Dinner', 'Dinner')}</Text>
-                    <Text style={styles.mealValue}>{selectedDayPlan.dinner}</Text>
-                  </View>
+                  {(['breakfast', 'lunch', 'snack', 'dinner'] as const).map((mealType) => {
+                    const labels: Record<string, string> = { breakfast: t('Breakfast', 'Breakfast'), lunch: t('Lunch', 'Lunch'), snack: t('Snack', 'Evening Snack'), dinner: t('Dinner', 'Dinner') };
+                    const mealValue = selectedDayPlan[mealType];
+                    return (
+                      <View key={mealType} style={styles.mealSection}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={styles.mealLabel}>{labels[mealType]}</Text>
+                          <TouchableOpacity
+                            onPress={() => handleSwapMeal(mealType, mealValue || '')}
+                            disabled={swappingMeal === mealType}
+                            style={styles.swapBtn}
+                          >
+                            {swappingMeal === mealType ? (
+                              <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                              <Text style={[styles.swapBtnText, { color: colors.primary }]}>🔄</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                        <Text style={styles.mealValue}>{mealValue}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
               ) : (
                 <Text style={styles.emptyText}>No plan generated for this day.</Text>
@@ -502,6 +534,12 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontSize: 15,
     color: colors.textDark,
     lineHeight: 22,
+  },
+  swapBtn: {
+    padding: 6,
+  },
+  swapBtnText: {
+    fontSize: 18,
   },
   listItem: {
     flexDirection: 'row',

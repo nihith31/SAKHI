@@ -194,3 +194,35 @@ async def get_lab_report(report_id: str, current_user=Depends(get_current_user))
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class ManualValueEntry(BaseModel):
+    hormone: str
+    value: str
+    unit: str
+
+class UpdateValuesRequest(BaseModel):
+    entries: List[ManualValueEntry]
+
+@router.patch("/update-values/{report_id}")
+async def update_extracted_values(report_id: str, req: UpdateValuesRequest, current_user=Depends(get_current_user)):
+    """Merge manually entered hormone values into an existing report's extracted_values."""
+    try:
+        report_resp = supabase_admin.table("lab_reports")\
+            .select("extracted_values").eq("id", report_id).eq("user_id", current_user.id).single().execute()
+        if not report_resp.data:
+            raise HTTPException(status_code=404, detail="Lab report not found.")
+
+        extracted = report_resp.data.get("extracted_values") or {}
+        ev = extracted.get("extracted_values", {})
+        for entry in req.entries:
+            if entry.value.strip():
+                ev[entry.hormone] = {"value": entry.value, "unit": entry.unit, "status": "manual_entry"}
+        extracted["extracted_values"] = ev
+
+        supabase_admin.table("lab_reports").update({"extracted_values": extracted}).eq("id", report_id).execute()
+        return {"status": "updated", "extracted_values": extracted}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

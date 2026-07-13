@@ -15,6 +15,7 @@ class GenerateMealPlanRequest(BaseModel):
     region: Optional[str] = "general" # "south_indian", "north_indian", "general"
 
 class SwapMealRequest(BaseModel):
+    day: str
     meal_type: str
     region: str
     current_meal: str
@@ -23,21 +24,28 @@ class SwapMealRequest(BaseModel):
 async def swap_individual_meal(req: SwapMealRequest, current_user=Depends(get_current_user)):
     try:
         profile_response = supabase_admin.table("profiles")\
-            .select("*")\
+            .select("language")\
             .eq("id", current_user.id)\
             .single()\
             .execute()
+        language = profile_response.data.get("language", "en") if profile_response.data else "en"
             
-        language = "en"
-        if profile_response.data:
-            language = profile_response.data.get("language", "en")
-            
-        new_meal = await meal_planner.swap_meal(
-            language=language,
-            region=req.region,
-            meal_type=req.meal_type,
-            current_meal=req.current_meal
-        )
+        new_meal = await meal_planner.swap_meal(language, req.region, req.meal_type, req.current_meal)
+
+        # Persist the swap into the latest meal plan
+        plan_resp = supabase_admin.table("meal_plans")\
+            .select("id,plan_data")\
+            .eq("user_id", current_user.id)\
+            .order("created_at", desc=True)\
+            .limit(1)\
+            .execute()
+        if plan_resp.data:
+            plan = plan_resp.data[0]
+            plan_data = plan["plan_data"] or {}
+            if req.day in plan_data:
+                plan_data[req.day][req.meal_type] = new_meal
+                supabase_admin.table("meal_plans").update({"plan_data": plan_data}).eq("id", plan["id"]).execute()
+
         return {"new_meal": new_meal}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
