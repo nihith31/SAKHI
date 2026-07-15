@@ -43,6 +43,6 @@ Write-Host "`n5. APK updated successfully!" -ForegroundColor Green
 Write-Host "`n6. Staging and committing APK..." -ForegroundColor Cyan
 cd ..
 git add website/assets/sakhi.apk
-git commit -m "deploy: auto-update compiled Android APK build"
+git commit -m "deploy: new Android APK build deployed (v$newVersion)"
 
 Write-Host "Build finished, downloaded, and committed! Run 'git push' to deploy to your website." -ForegroundColor Green
