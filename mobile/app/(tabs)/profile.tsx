@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { useTheme } from '../../services/themeContext';
 import { supabase } from '../../services/supabase';
 
@@ -369,7 +370,7 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textDark }]}>ℹ️ About Sakhi</Text>
             <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, shadowColor: colors.shadow }]}>
-              <InfoRow label="Version" value="1.0.0" />
+              <InfoRow label="Version" value={Constants.expoConfig?.version || "1.0.0"} />
             </View>
           </View>
 
