@@ -22,6 +22,7 @@ export default function EmailScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -32,9 +33,9 @@ export default function EmailScreen() {
       setAuthError('Please enter your email address first.');
       return;
     }
-    setLoading(true);
+    setResetLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail);
-    setLoading(false);
+    setResetLoading(false);
     if (error) {
       setAuthError(error.message);
     } else {
@@ -207,8 +208,10 @@ export default function EmailScreen() {
               </View>
 
               {mode === 'signin' && (
-                <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotLink}>
-                  <Text style={styles.forgotLinkText}>Forgot Password?</Text>
+                <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotLink} disabled={resetLoading}>
+                  <Text style={styles.forgotLinkText}>
+                    {resetLoading ? 'Sending link...' : 'Forgot Password?'}
+                  </Text>
                 </TouchableOpacity>
               )}
 
