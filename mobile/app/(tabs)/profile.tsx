@@ -518,8 +518,8 @@ export default function ProfileScreen() {
                 )}
               </TouchableOpacity>
             </View>
+            </View>
           </KeyboardAvoidingView>
-        </SafeAreaView>
       </Modal>
 
       {/* ── Change Password Modal ────────────────────────────── */}
