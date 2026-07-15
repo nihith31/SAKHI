@@ -9,10 +9,11 @@
 |---|---|
 | **AI Model** | Llama-3.1-8B-Instruct via NVIDIA API Catalog (Cloud) |
 | **Database** | Supabase (PostgreSQL) |
-| **Auth** | Supabase Auth — Mobile Number + OTP |
+| **Auth** | Supabase Auth — Email & Password (with static reset webpage on Vercel) |
 | **Storage** | Supabase Storage (lab reports, profile pics) |
 | **Push Notifications** | Yes — via Expo Push Notifications |
 | **Languages** | English, Hindi, Telugu (expandable) |
+| **Offline Sync** | Yes — Local Async Storage Queueing for low connectivity |
 | **Doctor Sharing** | Not included |
 | **Pricing** | Fully free |
 
@@ -22,10 +23,11 @@
 
 | # | Feature | Description |
 |---|---|---|
-| 1 | **🤖 AI Chatbot (Sakhi Bot)** | BioMistral-powered PCOS companion in user's native language |
+| 1 | **🤖 AI Chatbot (Sakhi Bot)** | Llama-3.1 powered PCOS companion in user's native language |
 | 2 | **📋 Symptom Tracker** | Daily logging of symptoms, cycle, mood, weight, energy |
-| 3 | **🍛 Personalized Meal Planning** | PCOS-friendly plans using regionally available ingredients (South Indian / North Indian) |
-| 4 | **🧪 Lab Report Analysis** | Upload blood reports → AI explains hormone levels in plain language |
+| 3 | **📶 Offline Reliability** | Fully offline symptom logging with background sync queueing |
+| 4 | **🍛 Personalized Meal Planning** | PCOS-friendly plans using regionally available ingredients with interactive swaps |
+| 5 | **🧪 Lab Report Analysis** | Upload blood reports → AI extracts markers & flags missing PCOS vitals |
 
 ---
 
@@ -39,15 +41,15 @@
 | **UI** | Custom components + React Native Reanimated | Premium animations |
 | **i18n** | react-i18next | English / Hindi / Telugu translations |
 | **Backend** | FastAPI (Python 3.11) | AI agent orchestration, API |
-| **AI Model** | Llama-3.1-8B-Instruct (NVIDIA API Catalog) | Medical LLM for all agents |
+| **AI Model** | Llama-3.1-8B-Instruct (NVIDIA API Catalog) | Core LLM for all agents |
 | **RAG** | pgvector (Supabase RPC) + SentenceTransformers | Semantic knowledge base retrieval |
 | **Embeddings** | all-mpnet-base-v2 (local) | Local embeddings, no API cost |
 | **OCR (Lab Reports)** | Tesseract / pypdf | Extract text from uploaded PDF/images |
 | **Database** | Supabase (PostgreSQL) | All user & health data |
-| **Auth** | Supabase Auth (Phone OTP) | SMS OTP via Supabase/Twilio |
+| **Auth** | Supabase Auth (Email/Password) | In-app login and static Vercel reset flow via PKCE |
 | **Storage** | Supabase Storage | Lab report uploads, profile photos |
 | **Push Notifications** | Expo Push Notifications + Supabase Edge Functions | Reminders, alerts |
-| **Landing Website** | HTML + Vanilla CSS + JS | APK download page |
+| **Landing Website** | Vercel (HTML + CSS + JS) | Hosts APK download and `reset-password.html` |
 
 ---
 
@@ -60,8 +62,7 @@ Demo project/
 │   ├── app/
 │   │   ├── (auth)/
 │   │   │   ├── welcome.tsx            ← Splash / language select
-│   │   │   ├── phone.tsx              ← Enter phone number
-│   │   │   ├── otp.tsx                ← OTP verification
+│   │   │   ├── email.tsx              ← Email/Password sign in, sign up, forgot password
 │   │   │   └── onboarding.tsx         ← PCOS profile setup
 │   │   ├── (tabs)/
 │   │   │   ├── home.tsx               ← Dashboard
@@ -125,15 +126,15 @@ Demo project/
 │   ├── requirements.txt
 │   └── .env.example
 │
-└── website/                           ← APK Download Landing Page
-    ├── index.html
-    ├── styles.css
-    ├── script.js
-    └── assets/
-        ├── sakhi-logo.svg
-        ├── hero-mockup.png
-        ├── screenshots/
-        └── sakhi.apk                  ← Added after EAS Build
+├── website/                           ← Static Landing Page (Hosted on Vercel)
+│   ├── index.html                     ← APK Download page
+│   ├── reset-password.html            ← Secure PKCE Password Reset page
+│   ├── styles.css                     ← Vanilla CSS
+│   └── assets/                        
+│       └── sakhi.apk                  ← Auto-deployed Android Build
+│
+├── build_and_deploy.ps1               ← Automation script for EAS Build & Version Bumping
+└── implementation_plan.md
 ```
 
 ---

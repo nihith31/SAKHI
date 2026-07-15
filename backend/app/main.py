@@ -11,7 +11,7 @@ from app.routers.notifications import router as notifications_router
 
 app = FastAPI(
     title="Sakhi Backend API",
-    description="Multi-agent backend running BioMistral-7B locally, backed by Supabase.",
+    description="Multi-agent backend running Llama-3.1 models via NVIDIA API, backed by Supabase.",
     version="1.0.0"
 )
 
