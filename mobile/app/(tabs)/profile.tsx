@@ -5,6 +5,7 @@ import {
   Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -46,6 +47,17 @@ export default function ProfileScreen() {
   const [editDiagnosisYear, setEditDiagnosisYear] = useState('');
   const [editGoals, setEditGoals] = useState<string[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Change Password States
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -123,6 +135,71 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim()) {
+      Alert.alert('Incomplete Fields', 'Please fill in all password fields.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert('Weak Password', 'New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      Alert.alert('Mismatch', 'New passwords do not match.');
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error('Could not find user email.');
+
+      // 1. Verify current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error('Incorrect current password.');
+      }
+
+      // 2. If verification successful, update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) throw updateError;
+
+      Alert.alert('Success', 'Password updated successfully! 🔐');
+      setIsPasswordModalOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update password.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    try {
+      setResetLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error('Could not find user email.');
+
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+      if (error) throw error;
+      
+      Alert.alert('Check Your Email 📧', 'A password reset link has been sent to your email address.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send reset email.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const handleLanguageChange = async (lang: LangCode) => {
     setCurrentLang(lang);
     await AsyncStorage.setItem('user-language', lang);
@@ -191,6 +268,14 @@ export default function ProfileScreen() {
               activeOpacity={0.8}
             >
               <Text style={styles.editProfileBtnText}>Edit Profile ✏️</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.changePasswordBtn} 
+              onPress={() => setIsPasswordModalOpen(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.changePasswordBtnText}>Change Password 🔐</Text>
             </TouchableOpacity>
           </LinearGradient>
 
@@ -433,9 +518,104 @@ export default function ProfileScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
+
+      {/* ── Change Password Modal ────────────────────────────── */}
+      <Modal
+        visible={isPasswordModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsPasswordModalOpen(false)}
+      >
+        <SafeAreaView style={styles.modalOverlay}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
+          >
+            <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.modalTitle, { color: colors.textDark }]}>Change Password 🔐</Text>
+
+              {/* Current Password */}
+              <Text style={[styles.modalLabel, { color: colors.textDark }]}>Current Password</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[styles.modalInput, styles.passwordInput, { borderColor: colors.cardBorder, color: colors.textDark }]}
+                  placeholder="Enter current password"
+                  placeholderTextColor={colors.textLight}
+                  secureTextEntry={!showCurrentPassword}
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                />
+                <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)} style={styles.eyeIconBtn}>
+                  <Ionicons name={showCurrentPassword ? "eye-off" : "eye"} size={22} color={colors.textLight} />
+                </TouchableOpacity>
+              </View>
+
+              {/* New Password */}
+              <Text style={[styles.modalLabel, { color: colors.textDark }]}>New Password</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[styles.modalInput, styles.passwordInput, { borderColor: colors.cardBorder, color: colors.textDark }]}
+                  placeholder="Enter new password"
+                  placeholderTextColor={colors.textLight}
+                  secureTextEntry={!showNewPassword}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                />
+                <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={styles.eyeIconBtn}>
+                  <Ionicons name={showNewPassword ? "eye-off" : "eye"} size={22} color={colors.textLight} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Confirm New Password */}
+              <Text style={[styles.modalLabel, { color: colors.textDark }]}>Confirm New Password</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[styles.modalInput, styles.passwordInput, { borderColor: colors.cardBorder, color: colors.textDark }]}
+                  placeholder="Confirm new password"
+                  placeholderTextColor={colors.textLight}
+                  secureTextEntry={!showConfirmNewPassword}
+                  value={confirmNewPassword}
+                  onChangeText={setConfirmNewPassword}
+                />
+                <TouchableOpacity onPress={() => setShowConfirmNewPassword(!showConfirmNewPassword)} style={styles.eyeIconBtn}>
+                  <Ionicons name={showConfirmNewPassword ? "eye-off" : "eye"} size={22} color={colors.textLight} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Forgot Password Link */}
+              <TouchableOpacity onPress={handleForgotPassword} style={styles.modalForgotLink} disabled={resetLoading}>
+                <Text style={[styles.modalForgotLinkText, { color: colors.primary }]}>
+                  {resetLoading ? 'Sending link...' : 'Forgot your current password?'}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity 
+                  style={[styles.modalCancelBtn, { borderColor: colors.cardBorder }]}
+                  onPress={() => setIsPasswordModalOpen(false)}
+                >
+                  <Text style={[styles.modalCancelBtnText, { color: colors.textDark }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalSaveBtn, { backgroundColor: colors.primary }]}
+                  onPress={handleChangePassword}
+                  disabled={passwordLoading}
+                >
+                  {passwordLoading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.modalSaveBtnText}>Update Password</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -631,9 +811,52 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.4)',
+    width: '100%',
+    alignItems: 'center',
   },
   editProfileBtnText: {
     color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  changePasswordBtn: {
+    marginTop: 8,
+    backgroundColor: 'transparent',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    width: '100%',
+    alignItems: 'center',
+  },
+  changePasswordBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Password UI
+  passwordInputContainer: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  passwordInput: {
+    paddingRight: 45, // Make room for eye icon
+  },
+  eyeIconBtn: {
+    position: 'absolute',
+    right: 14,
+    top: 14,
+  },
+  modalForgotLink: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  modalForgotLinkText: {
     fontSize: 13,
     fontWeight: '600',
   },
