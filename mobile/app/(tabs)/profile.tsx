@@ -822,12 +822,12 @@ const styles = StyleSheet.create({
 
   changePasswordBtn: {
     marginTop: 8,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
     width: '100%',
     alignItems: 'center',
   },
