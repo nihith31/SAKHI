@@ -4,6 +4,7 @@ import {
   SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../services/supabase';
@@ -18,6 +19,8 @@ export default function EmailScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -186,14 +189,22 @@ export default function EmailScreen() {
 
               {/* Password */}
               <Text style={styles.fieldLabel}>{t('auth.password_label')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={Colors.textLight}
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
+              <View style={{ position: 'relative' }}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor={Colors.textLight}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowPassword(!showPassword)} 
+                  style={{ position: 'absolute', right: 16, top: 16 }}
+                >
+                  <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color={Colors.textLight} />
+                </TouchableOpacity>
+              </View>
 
               {mode === 'signin' && (
                 <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotLink}>
@@ -205,14 +216,22 @@ export default function EmailScreen() {
               {mode === 'signup' && (
                 <>
                   <Text style={styles.fieldLabel}>{t('auth.confirm_password_label')}</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('auth.confirm_password_placeholder')}
-                    placeholderTextColor={Colors.textLight}
-                    secureTextEntry
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                  />
+                  <View style={{ position: 'relative' }}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('auth.confirm_password_placeholder')}
+                      placeholderTextColor={Colors.textLight}
+                      secureTextEntry={!showConfirmPassword}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                    />
+                    <TouchableOpacity 
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)} 
+                      style={{ position: 'absolute', right: 16, top: 16 }}
+                    >
+                      <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={22} color={Colors.textLight} />
+                    </TouchableOpacity>
+                  </View>
                 </>
               )}
 
