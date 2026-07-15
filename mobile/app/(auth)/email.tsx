@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
-  SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
+  SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -22,6 +22,22 @@ export default function EmailScreen() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const handleForgotPassword = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!emailRegex.test(trimmedEmail)) {
+      setAuthError('Please enter your email address first.');
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail);
+    setLoading(false);
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      Alert.alert('Check Your Email 📧', 'A password reset link has been sent to ' + trimmedEmail + '. Please check your inbox.');
+    }
+  };
 
   const handleAuth = async () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -178,6 +194,12 @@ export default function EmailScreen() {
                 value={password}
                 onChangeText={setPassword}
               />
+
+              {mode === 'signin' && (
+                <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotLink}>
+                  <Text style={styles.forgotLinkText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Confirm Password (sign up only) */}
               {mode === 'signup' && (
@@ -376,5 +398,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 18,
     textAlign: 'center',
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginTop: -10,
+    marginBottom: 14,
+  },
+  forgotLinkText: {
+    fontSize: 13,
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });

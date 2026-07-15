@@ -4,6 +4,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useState, useRef } from 'react';
+import { Alert } from 'react-native';
 import 'react-native-reanimated';
 import { initI18n } from '../i18n';
 import { supabase } from '../services/supabase';
@@ -98,6 +99,18 @@ export default function RootLayout() {
         await scheduleDailySymptomReminder();
       }
     })();
+  }, [authReady, session]);
+
+  // One-time connectivity check on app start
+  useEffect(() => {
+    if (!authReady || !session) return;
+    const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://sakhiai.up.railway.app';
+    fetch(API_URL, { method: 'HEAD' }).catch(() => {
+      Alert.alert(
+        'No Internet Connection 📡',
+        'Some features like AI Chat, Meal Plans, and Lab Reports need an internet connection. Symptom logging will work offline and sync later.'
+      );
+    });
   }, [authReady, session]);
 
   useEffect(() => {

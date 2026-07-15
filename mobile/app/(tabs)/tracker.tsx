@@ -34,6 +34,7 @@ export default function TrackerScreen() {
   const [hairLoss, setHairLoss] = useState<boolean>(false);
   const [bloating, setBloating] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>('');
+  const [todayLog, setTodayLog] = useState<any>(null);
 
   // Cycle form state
   const [periodStart, setPeriodStart] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -111,8 +112,28 @@ export default function TrackerScreen() {
     }
   };
 
+  const fetchTodayLog = async () => {
+    try {
+      const headers = await getHeaders();
+      const { data } = await axios.get(`${API_URL}/api/tracker/symptoms`, { headers });
+      const today = new Date().toISOString().split('T')[0];
+      const existing = data.find((log: any) => log.date === today);
+      if (existing) {
+        setTodayLog(existing);
+        setEnergyLevel(existing.energy_level);
+        setMoodLevel(existing.mood);
+        setPainLevel(existing.pain_level);
+        setAcne(existing.acne || false);
+        setHairLoss(existing.hair_loss || false);
+        setBloating(existing.bloating || false);
+        setNotes(existing.notes || '');
+      }
+    } catch (_) {}
+  };
+
   useEffect(() => {
     syncOfflineQueue();
+    fetchTodayLog();
   }, [activeTab]);
 
   const handleSaveSymptoms = async () => {
@@ -131,12 +152,8 @@ export default function TrackerScreen() {
     try {
       const headers = await getHeaders();
       await axios.post(`${API_URL}/api/tracker/symptom`, payload, { headers });
-      Alert.alert(t('Success', 'Success'), t('SymptomsLogged', 'Daily symptoms logged successfully! 🌸'));
-      // Reset physical symptoms/notes
-      setAcne(false);
-      setHairLoss(false);
-      setBloating(false);
-      setNotes('');
+      Alert.alert(t('Success', 'Success'), todayLog ? 'Symptoms updated successfully! ✏️' : t('SymptomsLogged', 'Daily symptoms logged successfully! 🌸'));
+      await fetchTodayLog();
     } catch (error: any) {
       console.error(error);
       if (!error.response) {
@@ -269,7 +286,15 @@ export default function TrackerScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {activeTab === 'symptoms' && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t('LogDailySymptoms', 'Log Daily Symptoms')}</Text>
+            <Text style={styles.cardTitle}>{todayLog ? 'Edit Today\'s Symptoms ✏️' : t('LogDailySymptoms', 'Log Daily Symptoms')}</Text>
+            {todayLog && (
+              <View style={styles.loggedBanner}>
+                <Text style={styles.loggedBannerText}>✅ Symptoms already logged today. Edit below to update.</Text>
+                {todayLog.updated_at && (
+                  <Text style={styles.loggedBannerTimestamp}>Last updated: {new Date(todayLog.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                )}
+              </View>
+            )}
             
             {/* Energy Slider */}
             <View style={styles.inputGroup}>
@@ -357,7 +382,7 @@ export default function TrackerScreen() {
             </View>
 
             <TouchableOpacity style={styles.submitButton} onPress={handleSaveSymptoms} disabled={loading}>
-              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>{t('SaveLog', 'Save Log')}</Text>}
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>{todayLog ? 'Update Log ✏️' : t('SaveLog', 'Save Log')}</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -695,5 +720,25 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 15,
+  },
+  loggedBanner: {
+    backgroundColor: isDark ? '#1B2D1E' : '#F0FFF4',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: isDark ? '#2D4A33' : '#C6F6D5',
+  },
+  loggedBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: isDark ? '#9AE6B4' : '#276749',
+    textAlign: 'center',
+  },
+  loggedBannerTimestamp: {
+    fontSize: 11,
+    color: isDark ? '#68D391' : '#38A169',
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
