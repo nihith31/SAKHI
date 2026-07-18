@@ -93,10 +93,18 @@ export default function RootLayout() {
     if (!authReady || !session) return;
 
     (async () => {
+      // 1. Get push token and save it to profile (if FCM is configured for standalone)
       const token = await registerForPushNotifications();
       if (token) {
         await savePushTokenToProfile(token);
+      }
+      
+      // 2. Schedule local daily reminders regardless of token status, as long as permission is granted
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status === 'granted') {
         await scheduleDailySymptomReminder();
+      } else {
+        console.log('[notifications] Cannot schedule daily reminders: Permission status is:', status);
       }
     })();
   }, [authReady, session]);
