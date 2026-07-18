@@ -15,8 +15,15 @@ if ($content -match '"version":\s*"(\d+\.\d+\.)(\d+)"') {
     Set-Content -Path $appJsonPath -Value $content -NoNewline
     Write-Host "Bumped version to $newVersion" -ForegroundColor Green
     
+    # Also update website/version.json
+    $versionJsonPath = "../website/version.json"
+    $versionJsonContent = "{`n  `"latest`": `"$newVersion`"`n}"
+    Set-Content -Path $versionJsonPath -Value $versionJsonContent -NoNewline
+    Write-Host "Updated website/version.json to $newVersion" -ForegroundColor Green
+    
     # Commit the version bump
     git add app.json
+    git add ../website/version.json
     git commit -m "chore: bump app version to $newVersion"
 } else {
     Write-Host "Could not find version string in app.json" -ForegroundColor Yellow

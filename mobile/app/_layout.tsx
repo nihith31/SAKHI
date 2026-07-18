@@ -4,7 +4,8 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useState, useRef } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
+import Constants from 'expo-constants';
 import 'react-native-reanimated';
 import { initI18n } from '../i18n';
 import { supabase } from '../services/supabase';
@@ -71,6 +72,53 @@ export default function RootLayout() {
         console.error('Failed to init i18n', err);
         setI18nReady(true);
       });
+  }, []);
+
+  // Check for updates on app start
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      try {
+        const response = await fetch('https://trysakhiai.vercel.app/version.json');
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        const latestVersion = data.latest;
+        const currentVersion = Constants.expoConfig?.version;
+        
+        if (latestVersion && currentVersion && latestVersion !== currentVersion) {
+          const isNewer = (latest: string, current: string) => {
+            const lParts = latest.split('.').map(Number);
+            const cParts = current.split('.').map(Number);
+            for (let i = 0; i < Math.max(lParts.length, cParts.length); i++) {
+              const l = lParts[i] || 0;
+              const c = cParts[i] || 0;
+              if (l > c) return true;
+              if (l < c) return false;
+            }
+            return false;
+          };
+          
+          if (isNewer(latestVersion, currentVersion)) {
+            Alert.alert(
+              'Update Available! 🚀',
+              `A new version of Sakhi (v${latestVersion}) is available. Please update now to get the latest features and bug fixes.`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Update Now', 
+                  onPress: () => Linking.openURL('https://trysakhiai.vercel.app') 
+                }
+              ]
+            );
+          }
+        }
+      } catch (err) {
+        console.log('[updater] Failed to check for updates:', err);
+      }
+    };
+    
+    const timer = setTimeout(checkForUpdates, 3000);
+    return () => clearTimeout(timer);
   }, []);
 
   // Bootstrap Supabase session once on mount, then listen for changes
