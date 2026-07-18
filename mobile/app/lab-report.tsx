@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, FlatList, Modal, TextInput
+  ActivityIndicator, Alert, FlatList, Modal, TextInput,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,6 +34,7 @@ export default function LabReportScreen() {
   const [uploading, setUploading] = useState(false);
   const [reports, setReports] = useState<LabReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedReport, setSelectedReport] = useState<LabReport | null>(null);
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualReportId, setManualReportId] = useState<string | null>(null);
@@ -84,8 +86,8 @@ export default function LabReportScreen() {
     };
   };
 
-  const fetchReports = async () => {
-    setLoadingReports(true);
+  const fetchReports = async (silent = false) => {
+    if (!silent) setLoadingReports(true);
     try {
       const headers = await getHeaders();
       const res = await axios.get(`${API_URL}/api/lab-reports`, { headers });
@@ -93,8 +95,14 @@ export default function LabReportScreen() {
     } catch (err) {
       console.log('Error fetching reports:', err);
     } finally {
-      setLoadingReports(false);
+      if (!silent) setLoadingReports(false);
     }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchReports(true);
+    setRefreshing(false);
   };
 
   const handlePickAndUpload = async () => {
@@ -382,7 +390,14 @@ export default function LabReportScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScrollEndDrag={fetchReports}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* Upload Card */}
         <View style={styles.uploadCard}>
