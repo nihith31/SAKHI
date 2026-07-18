@@ -12,6 +12,7 @@ import { useTheme } from '../services/themeContext';
 import { supabase } from '../services/supabase';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://sakhiai.up.railway.app';
 
@@ -44,13 +45,30 @@ export default function LabReportScreen() {
   const VITAL_MARKERS = ['LH', 'FSH', 'AMH', 'Testosterone', 'TSH', 'Insulin'];
 
   const getMissingMarkers = (extractedValues: Record<string, any>) => {
-    const found = Object.keys(extractedValues).map(k => k.toLowerCase());
+    const found = Object.entries(extractedValues)
+      .filter(([_, info]) => {
+        const val = String(info.value || '').toLowerCase().trim();
+        const status = String(info.status || '').toLowerCase().trim();
+        return val !== '' && val !== 'not-found' && val !== 'not found' && status !== 'not-found' && status !== 'not found';
+      })
+      .map(([k, _]) => k.toLowerCase());
     return VITAL_MARKERS.filter(m => !found.includes(m.toLowerCase()));
+  };
+
+  const DEFAULT_UNITS: Record<string, string> = {
+    LH: 'mIU/mL',
+    FSH: 'mIU/mL',
+    AMH: 'ng/mL',
+    Testosterone: 'ng/dL',
+    TSH: 'uIU/mL',
+    Insulin: 'uIU/mL',
   };
 
   const openManualEntryModal = (reportId: string, missing: string[]) => {
     const entries: Record<string, { value: string; unit: string }> = {};
-    missing.forEach(m => { entries[m] = { value: '', unit: '' }; });
+    missing.forEach(m => { 
+      entries[m] = { value: '', unit: DEFAULT_UNITS[m] || '' }; 
+    });
     setManualEntries(entries);
     setManualReportId(reportId);
     setShowManualModal(true);
@@ -159,11 +177,37 @@ export default function LabReportScreen() {
       const headers = await getHeaders();
       await axios.post(`${API_URL}/api/lab-reports/analyze/${reportId}`, {}, { headers });
       Alert.alert(t('LabReanalyzed', 'Re-analysis Started'), t('LabReanalyzedMsg', 'AI is re-analyzing your report. Pull to refresh in a moment.'));
-      setTimeout(() => fetchReports(), 8000);
+      setTimeout(() => fetchReports(true), 8000);
     } catch (err) {
       console.error('Reanalyze error:', err);
       Alert.alert(t('Error', 'Error'), t('ReanalyzeFailed', 'Failed to re-run analysis.'));
     }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    Alert.alert(
+      t('DeleteReport', 'Delete Report 🗑️'),
+      t('DeleteReportConfirm', 'Are you sure you want to delete this lab report? This cannot be undone.'),
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const headers = await getHeaders();
+              await axios.delete(`${API_URL}/api/lab-reports/${reportId}`, { headers });
+              setSelectedReport(null);
+              fetchReports(true);
+              Alert.alert(t('Success', 'Success'), t('ReportDeleted', 'Lab report deleted.'));
+            } catch (err) {
+              console.error('Delete error:', err);
+              Alert.alert(t('Error', 'Error'), t('DeleteFailed', 'Failed to delete report.'));
+            }
+          }
+        }
+      ]
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -183,6 +227,17 @@ export default function LabReportScreen() {
       case 'significantly_abnormal': return t('SignificantlyAbnormal', 'Abnormal 🚨');
       case 'manual_entry': return t('ManualEntry', 'Manual ✏️');
       default: return status;
+    }
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const date = d.toLocaleDateString();
+      const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `${date} at ${time}`;
+    } catch (e) {
+      return dateStr;
     }
   };
 
@@ -210,13 +265,22 @@ export default function LabReportScreen() {
               {t('LabReport', 'Lab Report')} — {report.report_date}
             </Text>
             <Text style={styles.reportCardDate}>
-              {t('UploadedOn', 'Uploaded')} {new Date(report.created_at).toLocaleDateString()}
+              {t('UploadedOn', 'Uploaded')} {formatDateTime(report.created_at)}
             </Text>
           </View>
-          <View style={[styles.analysisStatusBadge, { backgroundColor: hasAnalysis ? colors.secondaryLight : colors.primaryLight }]}>
-            <Text style={[styles.analysisStatusText, { color: hasAnalysis ? colors.secondary : colors.primary }]}>
-              {hasAnalysis ? t('Analyzed', 'Analyzed') : t('Pending', 'Pending...')}
-            </Text>
+          <View style={styles.headerActions}>
+            <View style={[styles.analysisStatusBadge, { backgroundColor: hasAnalysis ? colors.secondaryLight : colors.primaryLight, marginRight: 8 }]}>
+              <Text style={[styles.analysisStatusText, { color: hasAnalysis ? colors.secondary : colors.primary }]}>
+                {hasAnalysis ? t('Analyzed', 'Analyzed') : t('Pending', 'Pending...')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.headerDeleteBtn}
+              onPress={() => handleDeleteReport(report.id)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="trash-outline" size={18} color={colors.error || '#E67E80'} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -224,24 +288,32 @@ export default function LabReportScreen() {
         {isSelected && (
           <View style={styles.analysisContainer}>
             {/* Hormone Values Table */}
-            {Object.keys(extractedValues).length > 0 && (
-              <View style={styles.valuesSection}>
-                <Text style={styles.sectionHeading}>{t('HormoneValues', 'Extracted Hormone Values')}</Text>
-                {Object.entries(extractedValues).map(([hormone, info]: [string, any]) => (
-                  <View key={hormone} style={styles.hormoneRow}>
-                    <View style={styles.hormoneNameContainer}>
-                      <Text style={styles.hormoneName}>{hormone}</Text>
-                      <Text style={styles.hormoneValue}>{info.value} {info.unit}</Text>
+            {(() => {
+              const validValues = Object.entries(extractedValues).filter(([_, info]: [string, any]) => {
+                const val = String(info.value || '').toLowerCase().trim();
+                const status = String(info.status || '').toLowerCase().trim();
+                return val !== '' && val !== 'not-found' && val !== 'not found' && status !== 'not-found' && status !== 'not found';
+              });
+              if (validValues.length === 0) return null;
+              return (
+                <View style={styles.valuesSection}>
+                  <Text style={styles.sectionHeading}>{t('HormoneValues', 'Extracted Hormone Values')}</Text>
+                  {validValues.map(([hormone, info]: [string, any]) => (
+                    <View key={hormone} style={styles.hormoneRow}>
+                      <View style={styles.hormoneNameContainer}>
+                        <Text style={styles.hormoneName}>{hormone}</Text>
+                        <Text style={styles.hormoneValue}>{info.value} {info.unit}</Text>
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(info.status) + '22' }]}>
+                        <Text style={[styles.statusBadgeText, { color: getStatusColor(info.status) }]}>
+                          {getStatusLabel(info.status)}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(info.status) + '22' }]}>
-                      <Text style={[styles.statusBadgeText, { color: getStatusColor(info.status) }]}>
-                        {getStatusLabel(info.status)}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
+                  ))}
+                </View>
+              );
+            })()}
 
             {/* Missing Markers Verification Banner */}
             {hasAnalysis && (() => {
@@ -700,6 +772,15 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.primary,
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerDeleteBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: (colors.error || '#E67E80') + '15',
   },
   emptyContainer: {
     alignItems: 'center',

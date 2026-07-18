@@ -226,3 +226,33 @@ async def update_extracted_values(report_id: str, req: UpdateValuesRequest, curr
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{report_id}")
+async def delete_lab_report(report_id: str, current_user=Depends(get_current_user)):
+    """Delete a lab report from database and Supabase storage."""
+    try:
+        # 1. Fetch the report to get the file URL
+        report_resp = supabase_admin.table("lab_reports")\
+            .select("*").eq("id", report_id).eq("user_id", current_user.id).single().execute()
+        if not report_resp.data:
+            raise HTTPException(status_code=404, detail="Lab report not found.")
+        
+        report = report_resp.data
+        file_url = report.get("file_url", "")
+        
+        # 2. Delete from database
+        supabase_admin.table("lab_reports").delete().eq("id", report_id).execute()
+        
+        # 3. Delete from storage
+        if file_url:
+            try:
+                storage_path = "/".join(file_url.split("/")[-2:])  # user_id/filename
+                supabase_admin.storage.from_("lab-reports").remove(storage_path)
+            except Exception as se:
+                print(f"Error deleting file from storage: {se}")
+                
+        return {"status": "success", "message": "Lab report deleted successfully."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
