@@ -324,6 +324,32 @@ body {
     color: #615053;
 }
 
+.feature-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.feature-card-header .feature-icon {
+    margin-bottom: 0;
+}
+
+.coming-soon-badge {
+    background: linear-gradient(135deg, #E67E80 0%, #D47275 100%);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(230, 126, 128, 0.25);
+}
+
+.feature-card.coming-soon {
+    border: 1.5px dashed rgba(230, 126, 128, 0.5);
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAF5F2 100%);
+}
+
 /* Steps Section */
 .install-steps {
     padding: 80px 8%;
